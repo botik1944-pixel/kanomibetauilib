@@ -8973,7 +8973,7 @@ do
                     Name = "\0",
                     FontFace = Library.Font,
                     TextSize = Library.FontSize,
-                    Parent = Items["Accent"].Instance,
+                    Parent = Items["Slider"].Instance,
                     TextColor3 = Library.Theme["Text"],
                     Text = "100%",
                     AnchorPoint = Vector2.new(1, 0),
@@ -9001,9 +9001,11 @@ do
 
             function Slider:Set(Value)
                 Slider.Value = Library:Round(math.clamp(Value, Slider.Min, Slider.Max), Slider.Decimals)
+                local Range = Slider.Max - Slider.Min
+                local Percent = Range > 0 and ((Slider.Value - Slider.Min) / Range) or 0
 
                 Items["Accent"]:Tween(
-                    { Size = UDim2.new((Slider.Value - Slider.Min) / (Slider.Max - Slider.Min), 0, 1, 0) },
+                    { Size = UDim2.new(Percent, 0, 1, 0) },
                     TweenInfo.new(Library.Animation.Time, Enum.EasingStyle.Quart, Enum.EasingDirection.Out))
                 Items["Value"].Instance.Text = string.format("%s%s", Slider.Value, Slider.Suffix)
 
@@ -9016,8 +9018,11 @@ do
             end
 
             function Slider:GetSize(Input)
-                local SizeX = (Input.Position.X - Items["RealSlider"].Instance.AbsolutePosition.X) /
-                    Items["RealSlider"].Instance.AbsoluteSize.X
+                local TrackSize = Items["RealSlider"].Instance.AbsoluteSize.X
+                if TrackSize <= 0 then
+                    return Slider.Min
+                end
+                local SizeX = (Input.Position.X - Items["RealSlider"].Instance.AbsolutePosition.X) / TrackSize
                 local Value = ((Slider.Max - Slider.Min) * SizeX) + Slider.Min
 
                 return Value
@@ -9027,37 +9032,25 @@ do
                 Items["Text"].Instance.Text = tostring(Text)
             end
 
-            local InputChanged
-
-            Items["RealSlider"]:Connect("InputBegan", function(Input)
+            Items["Slider"]:Connect("InputBegan", function(Input)
                 if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
                     Slider.Sliding = true
-
-                    local Value = Slider:GetSize(Input)
-
-                    Slider:Set(Value)
-
-                    if InputChanged then
-                        return
-                    end
-
-                    InputChanged = Input.Changed:Connect(function()
-                        if Input.UserInputState == Enum.UserInputState.End then
-                            Slider.Sliding = false
-
-                            InputChanged:Disconnect()
-                            InputChanged = nil
-                        end
-                    end)
+                    Slider:Set(Slider:GetSize(Input))
                 end
             end)
 
             Library:Connect(UserInputService.InputChanged, function(Input)
                 if Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch then
                     if Slider.Sliding then
-                        local Value = Slider:GetSize(Input)
+                        Slider:Set(Slider:GetSize(Input))
+                    end
+                end
+            end)
 
-                        Slider:Set(Value)
+            Library:Connect(UserInputService.InputEnded, function(Input)
+                if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+                    if Slider.Sliding then
+                        Slider.Sliding = false
                     end
                 end
             end)
