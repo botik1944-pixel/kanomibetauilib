@@ -1050,7 +1050,8 @@ do
     end
 
     Library.Round = function(Self, Number, Float)
-        local Multiplier = 1 / (Float or 1)
+        local Step = (Float and Float > 0) and Float or 1
+        local Multiplier = 1 / Step
         return math.floor(Number * Multiplier) / Multiplier
     end
 
@@ -8883,22 +8884,34 @@ do
         Library.Slider = function(Self, Params)
             Params = Params or {}
 
+            local Min = tonumber(Params.Min or Params.min) or 0
+            if Min ~= Min then Min = 0 end
+
+            local Max = tonumber(Params.Max or Params.max) or 100
+            if Max ~= Max then Max = 100 end
+
+            local Default = tonumber(Params.Default or Params.default) or 0
+            if Default ~= Default then Default = Min end
+
+            local Decimals = tonumber(Params.Decimals or Params.decimals) or 0
+            if Decimals ~= Decimals then Decimals = 0 end
+
             local Slider = {
                 Name = Params.Name or Params.name or "Slider",
                 Flag = Params.Flag or Params.flag or (Params.Name or Params.name),
-                Default = Params.Default or Params.default or 0,
-                Min = Params.Min or Params.min or 0,
+                Default = Default,
+                Min = Min,
                 Tooltip = Params.Tooltip or Params.tooltip or nil,
-                Max = Params.Max or Params.max or 100,
+                Max = Max,
                 Callback = Params.Callback or Params.callback or function() end,
-                Decimals = Params.Decimals or Params.decimals or 0,
+                Decimals = Decimals,
                 Suffix = Params.Suffix or Params.suffix or "",
 
                 Window = Self.Window,
                 Page = Self.Page,
                 Section = Self,
 
-                Value = 0,
+                Value = Default,
                 Sliding = false,
                 Items = {}
             }
@@ -8913,7 +8926,17 @@ do
                     BorderSizePixel = 0
                 })
 
-                Items["Slider"]:Tooltip(Slider.Tooltip)
+                Items["ClickArea"] = Library:Create("TextButton", {
+                    Name = "\0",
+                    Parent = Items["Slider"].Instance,
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(1, 0, 1, 0),
+                    BorderSizePixel = 0,
+                    Text = "",
+                    ZIndex = 10
+                })
+
+                Items["ClickArea"]:Tooltip(Slider.Tooltip)
 
                 Items["Text"] = Library:Create("TextLabel", {
                     Name = "\0",
@@ -8990,7 +9013,7 @@ do
                     LineJoinMode = Enum.LineJoinMode.Miter
                 })
 
-                Items["RealSlider"]:OnHover(function()
+                Items["ClickArea"]:OnHover(function()
                     Items["RealSlider"]:Tween({ BackgroundColor3 = Library.Theme["Hovered Element"] })
                 end, function()
                     Items["RealSlider"]:Tween({ BackgroundColor3 = Library.Theme["Element"] })
@@ -9000,6 +9023,9 @@ do
             end
 
             function Slider:Set(Value)
+                if typeof(Value) ~= "number" or Value ~= Value then
+                    Value = Slider.Default or 0
+                end
                 Slider.Value = Library:Round(math.clamp(Value, Slider.Min, Slider.Max), Slider.Decimals)
                 local Range = Slider.Max - Slider.Min
                 local Percent = Range > 0 and ((Slider.Value - Slider.Min) / Range) or 0
@@ -9017,14 +9043,18 @@ do
                 Items["Slider"].Instance.Visible = Bool
             end
 
-            function Slider:GetSize(Input)
+            function Slider:GetSize()
                 local TrackSize = Items["RealSlider"].Instance.AbsoluteSize.X
                 if TrackSize <= 0 then
                     return Slider.Min
                 end
-                local SizeX = (Input.Position.X - Items["RealSlider"].Instance.AbsolutePosition.X) / TrackSize
-                local Value = ((Slider.Max - Slider.Min) * SizeX) + Slider.Min
+                local MouseLocation = UserInputService:GetMouseLocation()
+                local SizeX = (MouseLocation.X - Items["RealSlider"].Instance.AbsolutePosition.X) / TrackSize
+                local Value = ((Slider.Max - Slider.Min) * math.clamp(SizeX, 0, 1)) + Slider.Min
 
+                if Value ~= Value then
+                    return Slider.Default or 0
+                end
                 return Value
             end
 
@@ -9032,17 +9062,17 @@ do
                 Items["Text"].Instance.Text = tostring(Text)
             end
 
-            Items["Slider"]:Connect("InputBegan", function(Input)
+            Items["ClickArea"]:Connect("InputBegan", function(Input)
                 if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
                     Slider.Sliding = true
-                    Slider:Set(Slider:GetSize(Input))
+                    Slider:Set(Slider:GetSize())
                 end
             end)
 
             Library:Connect(UserInputService.InputChanged, function(Input)
                 if Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch then
                     if Slider.Sliding then
-                        Slider:Set(Slider:GetSize(Input))
+                        Slider:Set(Slider:GetSize())
                     end
                 end
             end)
