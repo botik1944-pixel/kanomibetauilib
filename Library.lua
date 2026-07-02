@@ -9023,12 +9023,14 @@ do
             end
 
             function Slider:Set(Value)
+                print("[Library Debug] Slider:Set called with:", Value)
                 if typeof(Value) ~= "number" or Value ~= Value then
                     Value = Slider.Default or 0
                 end
                 Slider.Value = Library:Round(math.clamp(Value, Slider.Min, Slider.Max), Slider.Decimals)
                 local Range = Slider.Max - Slider.Min
                 local Percent = Range > 0 and ((Slider.Value - Slider.Min) / Range) or 0
+                print("[Library Debug] Slider:Set processed - Value:", Slider.Value, "Percent:", Percent)
 
                 Items["Accent"]:Tween(
                     { Size = UDim2.new(Percent, 0, 1, 0) },
@@ -9045,11 +9047,13 @@ do
 
             function Slider:GetSize()
                 local TrackSize = Items["RealSlider"].Instance.AbsoluteSize.X
+                local AbsolutePos = Items["RealSlider"].Instance.AbsolutePosition.X
+                local MouseLocation = UserInputService:GetMouseLocation()
+                print("[Library Debug] GetSize Debug - TrackSize:", TrackSize, "AbsolutePos:", AbsolutePos, "MouseX:", MouseLocation.X)
                 if TrackSize <= 0 then
                     return Slider.Min
                 end
-                local MouseLocation = UserInputService:GetMouseLocation()
-                local SizeX = (MouseLocation.X - Items["RealSlider"].Instance.AbsolutePosition.X) / TrackSize
+                local SizeX = (MouseLocation.X - AbsolutePos) / TrackSize
                 local Value = ((Slider.Max - Slider.Min) * math.clamp(SizeX, 0, 1)) + Slider.Min
 
                 if Value ~= Value then
@@ -9063,8 +9067,11 @@ do
             end
 
             Items["ClickArea"]:Connect("MouseButton1Down", function()
+                print("[Library Debug] MouseButton1Down triggered on ClickArea for:", Slider.Name)
                 Slider.Sliding = true
-                Slider:Set(Slider:GetSize())
+                local size = Slider:GetSize()
+                print("[Library Debug] MouseButton1Down size calculated:", size)
+                Slider:Set(size)
             end)
 
             Library:Connect(UserInputService.InputChanged, function(Input)
@@ -9078,6 +9085,7 @@ do
             Library:Connect(UserInputService.InputEnded, function(Input)
                 if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
                     if Slider.Sliding then
+                        print("[Library Debug] InputEnded: Slider.Sliding set to false for:", Slider.Name)
                         Slider.Sliding = false
                     end
                 end
