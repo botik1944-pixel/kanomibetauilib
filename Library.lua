@@ -9062,11 +9062,9 @@ do
                 Items["Text"].Instance.Text = tostring(Text)
             end
 
-            Items["ClickArea"]:Connect("InputBegan", function(Input)
-                if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-                    Slider.Sliding = true
-                    Slider:Set(Slider:GetSize())
-                end
+            Items["ClickArea"]:Connect("MouseButton1Down", function()
+                Slider.Sliding = true
+                Slider:Set(Slider:GetSize())
             end)
 
             Library:Connect(UserInputService.InputChanged, function(Input)
