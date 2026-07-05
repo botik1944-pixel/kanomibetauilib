@@ -8755,8 +8755,17 @@ do
                     Flag = Keybind.Flag,
                     Default = Keybind.Default,
                     Mode = Keybind.Mode,
-                    Callback = Keybind.Callback
+                    Callback = function(State)
+                        Toggle:Set(State)
+                        Library:SafeCall(Keybind.Callback, State)
+                    end
                 })
+
+                local OldSet = Toggle.Set
+                function Toggle:Set(Bool)
+                    OldSet(self, Bool)
+                    NewKeybind.Toggled = Toggle.Value
+                end
 
                 return NewKeybind
             end
