@@ -7533,7 +7533,7 @@ do
                     Parent = Items["HeaderInnerOutline"].Instance,
                     Color = Color3.fromRGB(15, 15, 20),
                     LineJoinMode = Enum.LineJoinMode.Miter,
-                    Thickness = 10000
+                    Thickness = 1
                 }):AddToTheme({ Color = function() return Library.Theme["Background"] end })
 
                 Items["HeaderTitle"] = Library:Create("TextLabel", {
