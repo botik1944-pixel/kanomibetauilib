@@ -32,7 +32,7 @@ local Library = {
     FontColor = Color3.fromRGB(255, 255, 255);
     MainColor = Color3.fromRGB(28, 28, 28);
     BackgroundColor = Color3.fromRGB(20, 20, 20);
-    AccentColor = Color3.fromRGB(0, 85, 255);
+    AccentColor = Color3.fromRGB(140, 60, 255);
     OutlineColor = Color3.fromRGB(50, 50, 50);
     RiskColor = Color3.fromRGB(255, 50, 50),
 
@@ -357,15 +357,7 @@ function Library:RemoveFromRegistry(Instance)
 end;
 
 function Library:UpdateColorsUsingRegistry()
-    -- TODO: Could have an 'active' list of objects
-    -- where the active list only contains Visible objects.
 
-    -- IMPL: Could setup .Changed events on the AddToRegistry function
-    -- that listens for the 'Visible' propert being changed.
-    -- Visible: true => Add to active list, and call UpdateColors function
-    -- Visible: false => Remove from active list.
-
-    -- The above would be especially efficient for a rainbow menu color or live color-changing.
 
     for Idx, Object in next, Library.Registry do
         for Property, ColorIdx in next, Object.Properties do
@@ -379,18 +371,18 @@ function Library:UpdateColorsUsingRegistry()
 end;
 
 function Library:GiveSignal(Signal)
-    -- Only used for signals not attached to library instances, as those should be cleaned up on object destruction by Roblox
+
     table.insert(Library.Signals, Signal)
 end
 
 function Library:Unload()
-    -- Unload all of the signals
+
     for Idx = #Library.Signals, 1, -1 do
         local Connection = table.remove(Library.Signals, Idx)
         Connection:Disconnect()
     end
 
-     -- Call our unload callback, maybe to undo some hooks etc
+
     if Library.OnUnload then
         Library.OnUnload()
     end
@@ -415,7 +407,7 @@ do
 
     function Funcs:AddColorPicker(Idx, Info)
         local ToggleLabel = self.TextLabel;
-        -- local Container = self.Container;
+
 
         assert(Info.Default, 'AddColorPicker: Missing default value.');
 
@@ -446,7 +438,7 @@ do
             Parent = ToggleLabel;
         });
 
-        -- Transparency image taken from https://github.com/matas3535/SplixPrivateDrawingLibrary/blob/main/Library.lua cus i'm lazy
+
         local CheckerFrame = Library:Create('ImageLabel', {
             BorderSizePixel = 0;
             Size = UDim2.new(0, 27, 0, 13);
@@ -456,10 +448,7 @@ do
             Parent = DisplayFrame;
         });
 
-        -- 1/16/23
-        -- Rewrote this to be placed inside the Library ScreenGui
-        -- There was some issue which caused RelativeOffset to be way off
-        -- Thus the color picker would never show
+
 
         local PickerFrameOuter = Library:Create('Frame', {
             Name = 'Color';
@@ -663,7 +652,7 @@ do
             Position = UDim2.fromOffset(5, 5);
             TextXAlignment = Enum.TextXAlignment.Left;
             TextSize = 14;
-            Text = ColorPicker.Title,--Info.Default;
+            Text = ColorPicker.Title;
             TextWrapped = false;
             ZIndex = 16;
             Parent = PickerFrameInner;
@@ -1091,14 +1080,55 @@ do
             Parent = ModeSelectInner;
         });
 
-        local ContainerLabel = Library:CreateLabel({
-            TextXAlignment = Enum.TextXAlignment.Left;
-            Size = UDim2.new(1, 0, 0, 18);
-            TextSize = 13;
+        local RowFrame = Library:Create('Frame', {
+            BackgroundTransparency = 1;
+            Size = UDim2.new(1, 0, 0, 0);
             Visible = false;
+            ClipsDescendants = true;
             ZIndex = 110;
             Parent = Library.KeybindContainer;
-        },  true);
+        });
+
+        Library:Create('UIListLayout', {
+            FillDirection = Enum.FillDirection.Horizontal;
+            HorizontalAlignment = Enum.HorizontalAlignment.Left;
+            VerticalAlignment = Enum.VerticalAlignment.Center;
+            SortOrder = Enum.SortOrder.LayoutOrder;
+            Padding = UDim.new(0, 6);
+            Parent = RowFrame;
+        });
+
+        local TagLabel = Library:CreateLabel({
+            Size = UDim2.new(0, 0, 1, 0);
+            AutomaticSize = Enum.AutomaticSize.X;
+            TextSize = 13;
+            FontFace = Font.new("rbxassetid://12188570269", Enum.FontWeight.Bold);
+            TextColor3 = Library.AccentColor;
+            TextXAlignment = Enum.TextXAlignment.Left;
+            TextTransparency = 1;
+            ZIndex = 111;
+            Parent = RowFrame;
+        }, true);
+
+        local tagStroke = TagLabel:FindFirstChildOfClass("UIStroke")
+        if tagStroke then tagStroke.Transparency = 1 end
+
+        Library.RegistryMap[TagLabel].Properties.TextColor3 = 'AccentColor';
+
+        local NameLabel = Library:CreateLabel({
+            Size = UDim2.new(0, 0, 1, 0);
+            AutomaticSize = Enum.AutomaticSize.X;
+            TextSize = 13;
+            FontFace = Font.new("rbxassetid://12188570269", Enum.FontWeight.Medium);
+            TextColor3 = Library.FontColor;
+            TextXAlignment = Enum.TextXAlignment.Left;
+            TextTransparency = 1;
+            ZIndex = 111;
+            Parent = RowFrame;
+        }, true);
+
+        local nameStroke = NameLabel:FindFirstChildOfClass("UIStroke")
+        if nameStroke then nameStroke.Transparency = 1 end
 
         local Modes = Info.Modes or { 'Always', 'Toggle', 'Hold' };
         local ModeButtons = {};
@@ -1156,26 +1186,54 @@ do
 
             local State = KeyPicker:GetState();
 
-            ContainerLabel.Text = string.format('[%s] %s (%s)', KeyPicker.Value, Info.Text, KeyPicker.Mode);
+            TagLabel.Text = "[" .. KeyPicker.Mode .. "]"
+            NameLabel.Text = Info.Text .. " - " .. KeyPicker.Value
 
-            ContainerLabel.Visible = true;
-            ContainerLabel.TextColor3 = State and Library.AccentColor or Library.FontColor;
+            local show = State
+            local targetTransparency = show and 0 or 1
+            local targetHeight = show and 18 or 0
 
-            Library.RegistryMap[ContainerLabel].Properties.TextColor3 = State and 'AccentColor' or 'FontColor';
+            if show then
+                RowFrame.Visible = true
+            end
 
-            local YSize = 0
-            local XSize = 0
+            local tweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+            TweenService:Create(RowFrame, tweenInfo, {
+                Size = UDim2.new(1, 0, 0, targetHeight)
+            }):Play()
 
-            for _, Label in next, Library.KeybindContainer:GetChildren() do
-                if Label:IsA('TextLabel') and Label.Visible then
-                    YSize = YSize + 18;
-                    if (Label.TextBounds.X > XSize) then
-                        XSize = Label.TextBounds.X
+            TweenService:Create(TagLabel, tweenInfo, {
+                TextTransparency = targetTransparency
+            }):Play()
+
+            local tagStroke = TagLabel:FindFirstChildOfClass("UIStroke")
+            if tagStroke then
+                TweenService:Create(tagStroke, tweenInfo, {
+                    Transparency = targetTransparency
+                }):Play()
+            end
+
+            TweenService:Create(NameLabel, tweenInfo, {
+                TextTransparency = targetTransparency
+            }):Play()
+
+            local nameStroke = NameLabel:FindFirstChildOfClass("UIStroke")
+            if nameStroke then
+                TweenService:Create(nameStroke, tweenInfo, {
+                    Transparency = targetTransparency
+                }):Play()
+            end
+
+            if not show then
+                task.delay(0.1, function()
+                    if not KeyPicker:GetState() then
+                        RowFrame.Visible = false
+                        Library:UpdateKeybindFrame()
                     end
-                end;
-            end;
-
-            Library.KeybindFrame.Size = UDim2.new(0, math.max(XSize + 10, 210), 0, YSize + 23)
+                end)
+            else
+                Library:UpdateKeybindFrame()
+            end
         end;
 
         function KeyPicker:GetState()
@@ -2700,133 +2758,245 @@ do
     });
 
     local WatermarkOuter = Library:Create('Frame', {
-        BorderColor3 = Color3.new(0, 0, 0);
-        Position = UDim2.new(0, 100, 0, -25);
-        Size = UDim2.new(0, 213, 0, 20);
+        AnchorPoint = Vector2.new(0, 0);
+        BorderSizePixel = 0;
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255);
+        BackgroundTransparency = 1;
+        Position = UDim2.new(0.04588, 0, 0.02448, 0);
+        Size = UDim2.new(0, 345, 0, 30);
         ZIndex = 200;
         Visible = false;
         Parent = ScreenGui;
     });
 
-    local WatermarkInner = Library:Create('Frame', {
-        BackgroundColor3 = Library.MainColor;
-        BorderColor3 = Library.AccentColor;
-        BorderMode = Enum.BorderMode.Inset;
-        Size = UDim2.new(1, 0, 1, 0);
+    Library:Create('UIListLayout', {
+        FillDirection = Enum.FillDirection.Horizontal;
+        SortOrder = Enum.SortOrder.LayoutOrder;
+        Padding = UDim.new(0, 7);
+        Parent = WatermarkOuter;
+    });
+
+    local BrandLabel = Library:CreateLabel({
+        BorderSizePixel = 0;
+        BackgroundColor3 = Color3.fromRGB(3, 3, 3);
+        BackgroundTransparency = 0;
+        FontFace = Font.new("rbxassetid://12188570269", Enum.FontWeight.Bold);
+        TextColor3 = Library.AccentColor;
+        Size = UDim2.new(0, 111, 0, 30);
+        Text = "kanomi";
+        TextSize = 19;
+        TextXAlignment = Enum.TextXAlignment.Center;
+        ZIndex = 201;
+        Parent = WatermarkOuter;
+    }, true);
+
+    Library:Create('UICorner', {
+        CornerRadius = UDim.new(0, 5);
+        Parent = BrandLabel;
+    });
+
+    Library.RegistryMap[BrandLabel].Properties.TextColor3 = 'AccentColor';
+
+    local StatsFrame = Library:Create('Frame', {
+        BorderSizePixel = 0;
+        BackgroundColor3 = Color3.fromRGB(3, 3, 3);
+        Size = UDim2.new(0, 227, 0, 30);
         ZIndex = 201;
         Parent = WatermarkOuter;
     });
 
-    Library:AddToRegistry(WatermarkInner, {
-        BorderColor3 = 'AccentColor';
+    Library:Create('UICorner', {
+        CornerRadius = UDim.new(0, 5);
+        Parent = StatsFrame;
     });
 
-    local InnerFrame = Library:Create('Frame', {
-        BackgroundColor3 = Color3.new(1, 1, 1);
+    local StatsLabel = Library:CreateLabel({
         BorderSizePixel = 0;
-        Position = UDim2.new(0, 1, 0, 1);
-        Size = UDim2.new(1, -2, 1, -2);
+        BackgroundTransparency = 1;
+        FontFace = Font.new("rbxassetid://12188570269", Enum.FontWeight.Bold);
+        TextColor3 = Color3.fromRGB(255, 255, 255);
+        Size = UDim2.new(1, 0, 1, 0);
+        Text = "FPS: -- | Ping: --ms";
+        TextSize = 19;
+        TextXAlignment = Enum.TextXAlignment.Center;
         ZIndex = 202;
-        Parent = WatermarkInner;
-    });
-
-    local Gradient = Library:Create('UIGradient', {
-        Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.MainColor)),
-            ColorSequenceKeypoint.new(1, Library.MainColor),
-        });
-        Rotation = -90;
-        Parent = InnerFrame;
-    });
-
-    Library:AddToRegistry(Gradient, {
-        Color = function()
-            return ColorSequence.new({
-                ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.MainColor)),
-                ColorSequenceKeypoint.new(1, Library.MainColor),
-            });
-        end
-    });
-
-    local WatermarkLabel = Library:CreateLabel({
-        Position = UDim2.new(0, 5, 0, 0);
-        Size = UDim2.new(1, -4, 1, 0);
-        TextSize = 14;
-        TextXAlignment = Enum.TextXAlignment.Left;
-        ZIndex = 203;
-        Parent = InnerFrame;
-    });
+        Parent = StatsFrame;
+    }, true);
 
     Library.Watermark = WatermarkOuter;
-    Library.WatermarkText = WatermarkLabel;
+    Library.WatermarkText = StatsLabel;
     Library:MakeDraggable(Library.Watermark);
+
+    local lastUpdate = os.clock()
+    local frameCount = 0
+    local fps = 60
+    
+    table.insert(Library.Signals, game:GetService("RunService").RenderStepped:Connect(function()
+        frameCount = frameCount + 1
+        local now = os.clock()
+        if now - lastUpdate >= 0.5 then
+            fps = math.round(frameCount / (now - lastUpdate))
+            frameCount = 0
+            lastUpdate = now
+            
+            local ping = 0
+            pcall(function()
+                ping = math.round(stats().Network.ServerConnection:GetPing() * 1000)
+            end)
+            
+            StatsLabel.Text = string.format("FPS: %d | Ping: %dms", fps, ping)
+        end
+    end))
 
 
 
     local KeybindOuter = Library:Create('Frame', {
         AnchorPoint = Vector2.new(0, 0.5);
-        BorderColor3 = Color3.new(0, 0, 0);
+        BorderSizePixel = 0;
+        BackgroundColor3 = Color3.fromRGB(13, 13, 13);
+        BackgroundTransparency = 1;
         Position = UDim2.new(0, 10, 0.5, 0);
-        Size = UDim2.new(0, 210, 0, 20);
+        Size = UDim2.new(0, 150, 0, 102);
         Visible = false;
         ZIndex = 100;
         Parent = ScreenGui;
     });
 
-    local KeybindInner = Library:Create('Frame', {
-        BackgroundColor3 = Library.MainColor;
-        BorderColor3 = Library.OutlineColor;
-        BorderMode = Enum.BorderMode.Inset;
-        Size = UDim2.new(1, 0, 1, 0);
-        ZIndex = 101;
+    Library:Create('UICorner', {
+        CornerRadius = UDim.new(0, 15);
         Parent = KeybindOuter;
     });
 
-    Library:AddToRegistry(KeybindInner, {
-        BackgroundColor3 = 'MainColor';
-        BorderColor3 = 'OutlineColor';
-    }, true);
-
-    local ColorFrame = Library:Create('Frame', {
-        BackgroundColor3 = Library.AccentColor;
-        BorderSizePixel = 0;
-        Size = UDim2.new(1, 0, 0, 2);
-        ZIndex = 102;
-        Parent = KeybindInner;
+    local KeybindLabel = Library:CreateLabel({
+        Size = UDim2.new(1, 0, 0, 26);
+        Position = UDim2.new(0, 0, 0, 0);
+        TextXAlignment = Enum.TextXAlignment.Center;
+        FontFace = Font.new("rbxassetid://12188570269", Enum.FontWeight.Bold);
+        Text = 'Keybinds';
+        TextSize = 17;
+        TextColor3 = Color3.fromRGB(255, 255, 255);
+        TextTransparency = 1;
+        ZIndex = 104;
+        Parent = KeybindOuter;
     });
 
-    Library:AddToRegistry(ColorFrame, {
-        BackgroundColor3 = 'AccentColor';
-    }, true);
+    local labelStroke = KeybindLabel:FindFirstChildOfClass("UIStroke")
+    if labelStroke then labelStroke.Transparency = 1 end
 
-    local KeybindLabel = Library:CreateLabel({
-        Size = UDim2.new(1, 0, 0, 20);
-        Position = UDim2.fromOffset(5, 2),
-        TextXAlignment = Enum.TextXAlignment.Left,
-
-        Text = 'Keybinds';
-        ZIndex = 104;
-        Parent = KeybindInner;
+    local Divider = Library:Create('Frame', {
+        BorderSizePixel = 0;
+        BackgroundColor3 = Color3.fromRGB(22, 22, 22);
+        BackgroundTransparency = 1;
+        Size = UDim2.new(1, 0, 0, 3);
+        Position = UDim2.new(0, 0, 0, 26);
+        ZIndex = 103;
+        Parent = KeybindOuter;
     });
 
     local KeybindContainer = Library:Create('Frame', {
         BackgroundTransparency = 1;
-        Size = UDim2.new(1, 0, 1, -20);
-        Position = UDim2.new(0, 0, 0, 20);
+        Size = UDim2.new(1, 0, 1, -29);
+        Position = UDim2.new(0, 0, 0, 29);
         ZIndex = 1;
-        Parent = KeybindInner;
+        Parent = KeybindOuter;
     });
 
     Library:Create('UIListLayout', {
         FillDirection = Enum.FillDirection.Vertical;
         SortOrder = Enum.SortOrder.LayoutOrder;
+        Padding = UDim.new(0, 4);
         Parent = KeybindContainer;
     });
 
     Library:Create('UIPadding', {
-        PaddingLeft = UDim.new(0, 5),
-        Parent = KeybindContainer,
-    })
+        PaddingLeft = UDim.new(0, 10);
+        PaddingRight = UDim.new(0, 10);
+        PaddingTop = UDim.new(0, 5);
+        PaddingBottom = UDim.new(0, 5);
+        Parent = KeybindContainer;
+    });
+
+    local isFadingHUD = false
+    local function updateKeybindFrame()
+        local visibleCount = 0
+        local maxWidth = 140
+        
+        for _, child in next, KeybindContainer:GetChildren() do
+            if child:IsA('Frame') and child.Visible then
+                visibleCount = visibleCount + 1
+                
+                local tagWidth = child:FindFirstChild("TagLabel") and child.TagLabel.TextBounds.X or 0
+                local nameWidth = child:FindFirstChild("NameLabel") and child.NameLabel.TextBounds.X or 0
+                local totalWidth = tagWidth + nameWidth + 25
+                if totalWidth > maxWidth then
+                    maxWidth = totalWidth
+                end
+            end
+        end
+        
+        local tweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        
+        if visibleCount == 0 then
+            isFadingHUD = true
+            local contentHeight = KeybindContainer.UIListLayout.AbsoluteContentSize.Y
+            local targetHeight = 29 + contentHeight + 10
+            
+            TweenService:Create(KeybindOuter, tweenInfo, {
+                Size = UDim2.new(0, maxWidth, 0, targetHeight),
+                BackgroundTransparency = 1
+            }):Play()
+            
+            TweenService:Create(Divider, tweenInfo, {
+                BackgroundTransparency = 1
+            }):Play()
+            
+            TweenService:Create(KeybindLabel, tweenInfo, {
+                TextTransparency = 1
+            }):Play()
+            
+            local labelStroke = KeybindLabel:FindFirstChildOfClass("UIStroke")
+            if labelStroke then
+                TweenService:Create(labelStroke, tweenInfo, {
+                    Transparency = 1
+                }):Play()
+            end
+            
+            task.delay(0.1, function()
+                if isFadingHUD and KeybindOuter.BackgroundTransparency > 0.9 then
+                    KeybindOuter.Visible = false
+                end
+            end)
+        else
+            isFadingHUD = false
+            KeybindOuter.Visible = true
+            
+            local contentHeight = KeybindContainer.UIListLayout.AbsoluteContentSize.Y
+            local targetHeight = 29 + contentHeight + 10
+            
+            TweenService:Create(KeybindOuter, tweenInfo, {
+                Size = UDim2.new(0, maxWidth, 0, targetHeight),
+                BackgroundTransparency = 0
+            }):Play()
+            
+            TweenService:Create(Divider, tweenInfo, {
+                BackgroundTransparency = 0
+            }):Play()
+            
+            TweenService:Create(KeybindLabel, tweenInfo, {
+                TextTransparency = 0
+            }):Play()
+            
+            local labelStroke = KeybindLabel:FindFirstChildOfClass("UIStroke")
+            if labelStroke then
+                TweenService:Create(labelStroke, tweenInfo, {
+                    Transparency = 0
+                }):Play()
+            end
+        end
+    end
+
+    KeybindContainer.UIListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(updateKeybindFrame)
+    Library.UpdateKeybindFrame = updateKeybindFrame
 
     Library.KeybindFrame = KeybindOuter;
     Library.KeybindContainer = KeybindContainer;
@@ -2838,11 +3008,7 @@ function Library:SetWatermarkVisibility(Bool)
 end;
 
 function Library:SetWatermark(Text)
-    local X, Y = Library:GetTextBounds(Text, Library.Font, 14);
-    Library.Watermark.Size = UDim2.new(0, X + 15, 0, (Y * 1.5) + 3);
     Library:SetWatermarkVisibility(true)
-
-    Library.WatermarkText.Text = Text;
 end;
 
 function Library:Notify(Text, Time)
