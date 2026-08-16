@@ -1237,23 +1237,26 @@ do
         end;
 
         function KeyPicker:GetState()
+            if KeyPicker.Value == 'None' or KeyPicker.Value == nil or KeyPicker.Value == '' then
+                return false;
+            end;
+
             if KeyPicker.Mode == 'Always' then
                 return true;
             elseif KeyPicker.Mode == 'Hold' then
-                if KeyPicker.Value == 'None' then
-                    return false;
-                end
-
                 local Key = KeyPicker.Value;
 
                 if Key == 'MB1' or Key == 'MB2' then
-                    return Key == 'MB1' and InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
-                        or Key == 'MB2' and InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2);
+                    return (Key == 'MB1' and InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1))
+                        or (Key == 'MB2' and InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2));
                 else
-                    return InputService:IsKeyDown(Enum.KeyCode[KeyPicker.Value]);
+                    local success, isDown = pcall(function()
+                        return InputService:IsKeyDown(Enum.KeyCode[KeyPicker.Value]);
+                    end);
+                    return success and isDown or false;
                 end;
             else
-                return KeyPicker.Toggled;
+                return KeyPicker.Toggled == true;
             end;
         end;
 
@@ -1337,6 +1340,7 @@ do
                     Library:AttemptSave();
 
                     Event:Disconnect();
+                    KeyPicker:Update();
                 end);
             elseif Input.UserInputType == Enum.UserInputType.MouseButton2 and not Library:MouseIsOverOpenedFrame() then
                 ModeSelectOuter.Visible = true;
@@ -1348,16 +1352,18 @@ do
                 if KeyPicker.Mode == 'Toggle' then
                     local Key = KeyPicker.Value;
 
-                    if Key == 'MB1' or Key == 'MB2' then
-                        if Key == 'MB1' and Input.UserInputType == Enum.UserInputType.MouseButton1
-                        or Key == 'MB2' and Input.UserInputType == Enum.UserInputType.MouseButton2 then
-                            KeyPicker.Toggled = not KeyPicker.Toggled
-                            KeyPicker:DoClick()
-                        end;
-                    elseif Input.UserInputType == Enum.UserInputType.Keyboard then
-                        if Input.KeyCode.Name == Key then
-                            KeyPicker.Toggled = not KeyPicker.Toggled;
-                            KeyPicker:DoClick()
+                    if Key and Key ~= 'None' and Key ~= '' then
+                        if Key == 'MB1' or Key == 'MB2' then
+                            if Key == 'MB1' and Input.UserInputType == Enum.UserInputType.MouseButton1
+                            or Key == 'MB2' and Input.UserInputType == Enum.UserInputType.MouseButton2 then
+                                KeyPicker.Toggled = not KeyPicker.Toggled
+                                KeyPicker:DoClick()
+                            end;
+                        elseif Input.UserInputType == Enum.UserInputType.Keyboard then
+                            if Input.KeyCode.Name == Key then
+                                KeyPicker.Toggled = not KeyPicker.Toggled;
+                                KeyPicker:DoClick()
+                            end;
                         end;
                     end;
                 end;
@@ -2919,73 +2925,91 @@ do
     local KeybindOuter = Library:Create('Frame', {
         AnchorPoint = Vector2.new(0, 0.5);
         BorderSizePixel = 0;
-        BackgroundColor3 = Color3.fromRGB(13, 13, 13);
-        BackgroundTransparency = 1;
+        BackgroundColor3 = Color3.new(0, 0, 0);
         Position = UDim2.new(0, 10, 0.5, 0);
-        Size = UDim2.new(0, 150, 0, 102);
+        Size = UDim2.new(0, 140, 0, 0);
         Visible = false;
         ZIndex = 100;
         Parent = ScreenGui;
     });
 
-    Library:Create('UICorner', {
-        CornerRadius = UDim.new(0, 15);
+    local KeybindInner = Library:Create('Frame', {
+        BackgroundColor3 = Library.BackgroundColor;
+        BorderColor3 = Library.OutlineColor;
+        BorderMode = Enum.BorderMode.Inset;
+        Position = UDim2.new(0, 1, 0, 1);
+        Size = UDim2.new(1, -2, 1, -2);
+        ZIndex = 101;
         Parent = KeybindOuter;
     });
+
+    Library:AddToRegistry(KeybindInner, {
+        BackgroundColor3 = 'BackgroundColor';
+        BorderColor3 = 'OutlineColor';
+    }, true);
+
+    local TopHighlight = Library:Create('Frame', {
+        BackgroundColor3 = Library.AccentColor;
+        BorderSizePixel = 0;
+        Size = UDim2.new(1, 0, 0, 2);
+        ZIndex = 105;
+        Parent = KeybindInner;
+    });
+
+    Library:AddToRegistry(TopHighlight, {
+        BackgroundColor3 = 'AccentColor';
+    }, true);
 
     local KeybindLabel = Library:CreateLabel({
-        Size = UDim2.new(1, 0, 0, 26);
-        Position = UDim2.new(0, 0, 0, 0);
-        TextXAlignment = Enum.TextXAlignment.Center;
-        FontFace = Font.new("rbxassetid://12188570269", Enum.FontWeight.Bold);
+        Size = UDim2.new(1, -8, 0, 18);
+        Position = UDim2.new(0, 5, 0, 2);
         Text = 'Keybinds';
-        TextSize = 17;
-        TextColor3 = Color3.fromRGB(255, 255, 255);
-        TextTransparency = 1;
+        TextSize = 14;
+        TextXAlignment = Enum.TextXAlignment.Left;
         ZIndex = 104;
-        Parent = KeybindOuter;
-    });
-
-    local labelStroke = KeybindLabel:FindFirstChildOfClass("UIStroke")
-    if labelStroke then labelStroke.Transparency = 1 end
+        Parent = KeybindInner;
+    }, true);
 
     local Divider = Library:Create('Frame', {
+        BackgroundColor3 = Library.OutlineColor;
         BorderSizePixel = 0;
-        BackgroundColor3 = Color3.fromRGB(22, 22, 22);
-        BackgroundTransparency = 1;
-        Size = UDim2.new(1, 0, 0, 3);
-        Position = UDim2.new(0, 0, 0, 26);
+        Position = UDim2.new(0, 0, 0, 20);
+        Size = UDim2.new(1, 0, 0, 1);
         ZIndex = 103;
-        Parent = KeybindOuter;
+        Parent = KeybindInner;
     });
+
+    Library:AddToRegistry(Divider, {
+        BackgroundColor3 = 'OutlineColor';
+    }, true);
 
     local KeybindContainer = Library:Create('Frame', {
         BackgroundTransparency = 1;
-        Size = UDim2.new(1, 0, 1, -29);
-        Position = UDim2.new(0, 0, 0, 29);
-        ZIndex = 1;
-        Parent = KeybindOuter;
+        Position = UDim2.new(0, 4, 0, 21);
+        Size = UDim2.new(1, -8, 1, -22);
+        ZIndex = 102;
+        Parent = KeybindInner;
     });
 
     Library:Create('UIListLayout', {
         FillDirection = Enum.FillDirection.Vertical;
         SortOrder = Enum.SortOrder.LayoutOrder;
-        Padding = UDim.new(0, 4);
+        Padding = UDim.new(0, 2);
         Parent = KeybindContainer;
     });
 
     Library:Create('UIPadding', {
-        PaddingLeft = UDim.new(0, 10);
-        PaddingRight = UDim.new(0, 10);
-        PaddingTop = UDim.new(0, 5);
-        PaddingBottom = UDim.new(0, 5);
+        PaddingLeft = UDim.new(0, 2);
+        PaddingRight = UDim.new(0, 2);
+        PaddingTop = UDim.new(0, 3);
+        PaddingBottom = UDim.new(0, 3);
         Parent = KeybindContainer;
     });
 
     local isFadingHUD = false
     local function updateKeybindFrame()
         local visibleCount = 0
-        local maxWidth = 140
+        local maxWidth = 130
         
         for _, child in next, KeybindContainer:GetChildren() do
             if child:IsA('Frame') and child.Visible then
@@ -2993,7 +3017,7 @@ do
                 
                 local tagWidth = child:FindFirstChild("TagLabel") and child.TagLabel.TextBounds.X or 0
                 local nameWidth = child:FindFirstChild("NameLabel") and child.NameLabel.TextBounds.X or 0
-                local totalWidth = tagWidth + nameWidth + 25
+                local totalWidth = tagWidth + nameWidth + 24
                 if totalWidth > maxWidth then
                     maxWidth = totalWidth
                 end
@@ -3001,14 +3025,22 @@ do
         end
         
         local tweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local contentHeight = KeybindContainer.UIListLayout.AbsoluteContentSize.Y
+        local targetHeight = 22 + contentHeight + 6
         
         if visibleCount == 0 then
             isFadingHUD = true
-            local contentHeight = KeybindContainer.UIListLayout.AbsoluteContentSize.Y
-            local targetHeight = 29 + contentHeight + 10
             
             TweenService:Create(KeybindOuter, tweenInfo, {
                 Size = UDim2.new(0, maxWidth, 0, targetHeight),
+                BackgroundTransparency = 1
+            }):Play()
+            
+            TweenService:Create(KeybindInner, tweenInfo, {
+                BackgroundTransparency = 1
+            }):Play()
+            
+            TweenService:Create(TopHighlight, tweenInfo, {
                 BackgroundTransparency = 1
             }):Play()
             
@@ -3036,11 +3068,16 @@ do
             isFadingHUD = false
             KeybindOuter.Visible = true
             
-            local contentHeight = KeybindContainer.UIListLayout.AbsoluteContentSize.Y
-            local targetHeight = 29 + contentHeight + 10
-            
             TweenService:Create(KeybindOuter, tweenInfo, {
                 Size = UDim2.new(0, maxWidth, 0, targetHeight),
+                BackgroundTransparency = 0
+            }):Play()
+            
+            TweenService:Create(KeybindInner, tweenInfo, {
+                BackgroundTransparency = 0
+            }):Play()
+            
+            TweenService:Create(TopHighlight, tweenInfo, {
                 BackgroundTransparency = 0
             }):Play()
             
@@ -3066,7 +3103,7 @@ do
 
     Library.KeybindFrame = KeybindOuter;
     Library.KeybindContainer = KeybindContainer;
-    Library:MakeDraggable(KeybindOuter);
+    Library:MakeDraggable(KeybindOuter, 22);
 end;
 
 function Library:SetWatermarkVisibility(Bool)
@@ -3207,24 +3244,6 @@ function Library:CreateWindow(...)
     });
 
     Library:MakeDraggable(Outer, 25);
-
-    local Glow = Library:Create('ImageLabel', {
-        Name = 'Glow',
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, -20, 0, -20),
-        Size = UDim2.new(1, 40, 1, 40),
-        ZIndex = 0,
-        Image = 'rbxassetid://5028857472',
-        ImageColor3 = Library.AccentColor,
-        ImageTransparency = 0.35,
-        ScaleType = Enum.ScaleType.Slice,
-        SliceCenter = Rect.new(24, 24, 276, 276),
-        Parent = Outer,
-    });
-
-    Library:AddToRegistry(Glow, {
-        ImageColor3 = 'AccentColor';
-    });
 
     local Inner = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
