@@ -310,7 +310,10 @@ function Library:GetTextBounds(Text, Font, Size, Resolution)
     if typeof(Font) == 'Font' then
         fontEnum = Enum.Font.SourceSans
     end
-    local Bounds = TextService:GetTextSize(Text, Size, fontEnum, Resolution or Vector2.new(1920, 1080))
+    local Bounds = TextService:GetTextSize(Text or '', Size or 14, fontEnum, Resolution or Vector2.new(1920, 1080))
+    if typeof(Font) == 'Font' then
+        return math.ceil(Bounds.X * 1.25), Bounds.Y
+    end
     return Bounds.X, Bounds.Y
 end;
 
@@ -1084,7 +1087,7 @@ do
             BackgroundTransparency = 1;
             Size = UDim2.new(1, 0, 0, 0);
             Visible = false;
-            ClipsDescendants = true;
+            ClipsDescendants = false;
             ZIndex = 110;
             Parent = Library.KeybindContainer;
         });
@@ -1102,7 +1105,7 @@ do
             Size = UDim2.new(0, 0, 1, 0);
             AutomaticSize = Enum.AutomaticSize.X;
             TextSize = 13;
-            FontFace = Font.new("rbxassetid://12188570269", Enum.FontWeight.Bold);
+            FontFace = Library.Font;
             TextColor3 = Library.AccentColor;
             TextXAlignment = Enum.TextXAlignment.Left;
             TextTransparency = 1;
@@ -1119,7 +1122,7 @@ do
             Size = UDim2.new(0, 0, 1, 0);
             AutomaticSize = Enum.AutomaticSize.X;
             TextSize = 13;
-            FontFace = Font.new("rbxassetid://12188570269", Enum.FontWeight.Medium);
+            FontFace = Library.Font;
             TextColor3 = Library.FontColor;
             TextXAlignment = Enum.TextXAlignment.Left;
             TextTransparency = 1;
@@ -3008,18 +3011,21 @@ do
 
     local function updateKeybindFrame()
         local visibleCount = 0
-        local maxWidth = 140
+        local maxWidth = 160
         
         for _, child in next, KeybindContainer:GetChildren() do
             if child:IsA('Frame') and child.Visible then
                 visibleCount = visibleCount + 1
                 
-                local tagText = child:FindFirstChild("TagLabel") and child.TagLabel.Text or ""
-                local nameText = child:FindFirstChild("NameLabel") and child.NameLabel.Text or ""
+                local tag = child:FindFirstChild("TagLabel")
+                local name = child:FindFirstChild("NameLabel")
                 
-                local tagWidth = Library:GetTextBounds(tagText, Library.Font, 13)
-                local nameWidth = Library:GetTextBounds(nameText, Library.Font, 13)
-                local totalWidth = tagWidth + nameWidth + 28
+                local tagText = tag and tag.Text or ""
+                local nameText = name and name.Text or ""
+                
+                local tagWidth = tag and math.max(tag.TextBounds.X, Library:GetTextBounds(tagText, Library.Font, 13)) or 0
+                local nameWidth = name and math.max(name.TextBounds.X, Library:GetTextBounds(nameText, Library.Font, 13)) or 0
+                local totalWidth = tagWidth + nameWidth + 44
                 
                 if totalWidth > maxWidth then
                     maxWidth = totalWidth
@@ -3029,7 +3035,7 @@ do
         
         local tweenInfo = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
         local contentHeight = KeybindContainer.UIListLayout.AbsoluteContentSize.Y
-        local targetHeight = (visibleCount == 0) and 24 or (24 + contentHeight + 4)
+        local targetHeight = (visibleCount == 0) and 24 or (24 + contentHeight + 6)
         
         KeybindOuter.Visible = true
         
