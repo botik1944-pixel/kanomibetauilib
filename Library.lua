@@ -2927,8 +2927,8 @@ do
         BorderSizePixel = 0;
         BackgroundColor3 = Color3.new(0, 0, 0);
         Position = UDim2.new(0, 10, 0.5, 0);
-        Size = UDim2.new(0, 140, 0, 0);
-        Visible = false;
+        Size = UDim2.new(0, 140, 0, 24);
+        Visible = true;
         ZIndex = 100;
         Parent = ScreenGui;
     });
@@ -3006,95 +3006,59 @@ do
         Parent = KeybindContainer;
     });
 
-    local isFadingHUD = false
     local function updateKeybindFrame()
         local visibleCount = 0
-        local maxWidth = 130
+        local maxWidth = 140
         
         for _, child in next, KeybindContainer:GetChildren() do
             if child:IsA('Frame') and child.Visible then
                 visibleCount = visibleCount + 1
                 
-                local tagWidth = child:FindFirstChild("TagLabel") and child.TagLabel.TextBounds.X or 0
-                local nameWidth = child:FindFirstChild("NameLabel") and child.NameLabel.TextBounds.X or 0
-                local totalWidth = tagWidth + nameWidth + 24
+                local tagText = child:FindFirstChild("TagLabel") and child.TagLabel.Text or ""
+                local nameText = child:FindFirstChild("NameLabel") and child.NameLabel.Text or ""
+                
+                local tagWidth = Library:GetTextBounds(tagText, Library.Font, 13)
+                local nameWidth = Library:GetTextBounds(nameText, Library.Font, 13)
+                local totalWidth = tagWidth + nameWidth + 28
+                
                 if totalWidth > maxWidth then
                     maxWidth = totalWidth
                 end
             end
         end
         
-        local tweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local tweenInfo = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
         local contentHeight = KeybindContainer.UIListLayout.AbsoluteContentSize.Y
-        local targetHeight = 22 + contentHeight + 6
+        local targetHeight = (visibleCount == 0) and 24 or (24 + contentHeight + 4)
         
-        if visibleCount == 0 then
-            isFadingHUD = true
-            
-            TweenService:Create(KeybindOuter, tweenInfo, {
-                Size = UDim2.new(0, maxWidth, 0, targetHeight),
-                BackgroundTransparency = 1
+        KeybindOuter.Visible = true
+        
+        TweenService:Create(KeybindOuter, tweenInfo, {
+            Size = UDim2.new(0, maxWidth, 0, targetHeight),
+            BackgroundTransparency = 0
+        }):Play()
+        
+        TweenService:Create(KeybindInner, tweenInfo, {
+            BackgroundTransparency = 0
+        }):Play()
+        
+        TweenService:Create(TopHighlight, tweenInfo, {
+            BackgroundTransparency = 0
+        }):Play()
+        
+        TweenService:Create(Divider, tweenInfo, {
+            BackgroundTransparency = 0
+        }):Play()
+        
+        TweenService:Create(KeybindLabel, tweenInfo, {
+            TextTransparency = 0
+        }):Play()
+        
+        local labelStroke = KeybindLabel:FindFirstChildOfClass("UIStroke")
+        if labelStroke then
+            TweenService:Create(labelStroke, tweenInfo, {
+                Transparency = 0
             }):Play()
-            
-            TweenService:Create(KeybindInner, tweenInfo, {
-                BackgroundTransparency = 1
-            }):Play()
-            
-            TweenService:Create(TopHighlight, tweenInfo, {
-                BackgroundTransparency = 1
-            }):Play()
-            
-            TweenService:Create(Divider, tweenInfo, {
-                BackgroundTransparency = 1
-            }):Play()
-            
-            TweenService:Create(KeybindLabel, tweenInfo, {
-                TextTransparency = 1
-            }):Play()
-            
-            local labelStroke = KeybindLabel:FindFirstChildOfClass("UIStroke")
-            if labelStroke then
-                TweenService:Create(labelStroke, tweenInfo, {
-                    Transparency = 1
-                }):Play()
-            end
-            
-            task.delay(0.1, function()
-                if isFadingHUD and KeybindOuter.BackgroundTransparency > 0.9 then
-                    KeybindOuter.Visible = false
-                end
-            end)
-        else
-            isFadingHUD = false
-            KeybindOuter.Visible = true
-            
-            TweenService:Create(KeybindOuter, tweenInfo, {
-                Size = UDim2.new(0, maxWidth, 0, targetHeight),
-                BackgroundTransparency = 0
-            }):Play()
-            
-            TweenService:Create(KeybindInner, tweenInfo, {
-                BackgroundTransparency = 0
-            }):Play()
-            
-            TweenService:Create(TopHighlight, tweenInfo, {
-                BackgroundTransparency = 0
-            }):Play()
-            
-            TweenService:Create(Divider, tweenInfo, {
-                BackgroundTransparency = 0
-            }):Play()
-            
-            TweenService:Create(KeybindLabel, tweenInfo, {
-                TextTransparency = 0
-            }):Play()
-            
-            local labelStroke = KeybindLabel:FindFirstChildOfClass("UIStroke")
-            if labelStroke then
-                TweenService:Create(labelStroke, tweenInfo, {
-                    Transparency = 0
-                }):Play()
-            end
         end
     end
 
