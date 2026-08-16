@@ -1200,7 +1200,7 @@ do
                 RowFrame.Visible = true
             end
 
-            local tweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+            local tweenInfo = TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
             TweenService:Create(RowFrame, tweenInfo, {
                 Size = UDim2.new(1, 0, 0, targetHeight)
             }):Play()
@@ -1228,7 +1228,7 @@ do
             end
 
             if not show then
-                task.delay(0.1, function()
+                task.delay(0.08, function()
                     if not KeyPicker:GetState() then
                         RowFrame.Visible = false
                         Library:UpdateKeybindFrame()
@@ -1986,7 +1986,7 @@ do
         ToggleRegion.MouseEnter:Connect(function()
             Hovered = true;
             if not Toggle.Value then
-                TweenService:Create(ToggleStroke, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                TweenService:Create(ToggleStroke, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
                     Color = Library.AccentColor
                 }):Play();
             end;
@@ -1995,13 +1995,13 @@ do
         ToggleRegion.MouseLeave:Connect(function()
             Hovered = false;
             if not Toggle.Value then
-                TweenService:Create(ToggleStroke, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                TweenService:Create(ToggleStroke, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
                     Color = Library.OutlineColor
                 }):Play();
             end;
         end);
 
-        local AnimInfo = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out);
+        local AnimInfo = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out);
 
         function Toggle:Display(Animate)
             local TargetBgTrans = Toggle.Value and 0 or 1;
@@ -3033,7 +3033,7 @@ do
             end
         end
         
-        local tweenInfo = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local tweenInfo = TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
         local contentHeight = KeybindContainer.UIListLayout.AbsoluteContentSize.Y
         local targetHeight = (visibleCount == 0) and 24 or (24 + contentHeight + 6)
         
@@ -3162,14 +3162,14 @@ function Library:Notify(Text, Time)
         BackgroundColor3 = 'AccentColor';
     }, true);
 
-    pcall(NotifyOuter.TweenSize, NotifyOuter, UDim2.new(0, XSize + 8 + 4, 0, YSize), 'Out', 'Quad', 0.4, true);
+    pcall(NotifyOuter.TweenSize, NotifyOuter, UDim2.new(0, XSize + 8 + 4, 0, YSize), 'Out', 'Quad', 0.2, true);
 
     task.spawn(function()
         wait(Time or 5);
 
-        pcall(NotifyOuter.TweenSize, NotifyOuter, UDim2.new(0, 0, 0, YSize), 'Out', 'Quad', 0.4, true);
+        pcall(NotifyOuter.TweenSize, NotifyOuter, UDim2.new(0, 0, 0, YSize), 'Out', 'Quad', 0.2, true);
 
-        wait(0.4);
+        wait(0.2);
 
         NotifyOuter:Destroy();
     end);
@@ -3188,7 +3188,7 @@ function Library:CreateWindow(...)
 
     if type(Config.Title) ~= 'string' then Config.Title = 'No title' end
     if type(Config.TabPadding) ~= 'number' then Config.TabPadding = 0 end
-    if type(Config.MenuFadeTime) ~= 'number' then Config.MenuFadeTime = 0.2 end
+    if type(Config.MenuFadeTime) ~= 'number' then Config.MenuFadeTime = 0.12 end
 
     if typeof(Config.Position) ~= 'UDim2' then Config.Position = UDim2.fromOffset(175, 50) end
     if typeof(Config.Size) ~= 'UDim2' then Config.Size = UDim2.fromOffset(550, 600) end
