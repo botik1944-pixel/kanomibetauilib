@@ -1892,29 +1892,59 @@ do
         local Container = Groupbox.Container;
 
         local ToggleOuter = Library:Create('Frame', {
-            BackgroundColor3 = Color3.new(0, 0, 0);
-            BorderColor3 = Color3.new(0, 0, 0);
-            Size = UDim2.new(0, 13, 0, 13);
+            BackgroundColor3 = Library.BackgroundColor;
+            BorderSizePixel = 0;
+            Size = UDim2.new(0, 14, 0, 14);
             ZIndex = 5;
             Parent = Container;
         });
 
-        Library:AddToRegistry(ToggleOuter, {
-            BorderColor3 = 'Black';
+        Library:Create('UICorner', {
+            CornerRadius = UDim.new(0, 4);
+            Parent = ToggleOuter;
+        });
+
+        local ToggleStroke = Library:Create('UIStroke', {
+            Color = Library.OutlineColor;
+            Thickness = 1;
+            ApplyStrokeMode = Enum.ApplyStrokeMode.Border;
+            Parent = ToggleOuter;
+        });
+
+        Library:AddToRegistry(ToggleStroke, {
+            Color = function()
+                return Toggle.Value and (Library.AccentColorDark or Library.AccentColor) or Library.OutlineColor;
+            end;
         });
 
         local ToggleInner = Library:Create('Frame', {
-            BackgroundColor3 = Library.MainColor;
-            BorderColor3 = Library.OutlineColor;
-            BorderMode = Enum.BorderMode.Inset;
+            BackgroundColor3 = Library.AccentColor;
+            BackgroundTransparency = 1;
+            BorderSizePixel = 0;
             Size = UDim2.new(1, 0, 1, 0);
             ZIndex = 6;
             Parent = ToggleOuter;
         });
 
+        Library:Create('UICorner', {
+            CornerRadius = UDim.new(0, 4);
+            Parent = ToggleInner;
+        });
+
         Library:AddToRegistry(ToggleInner, {
-            BackgroundColor3 = 'MainColor';
-            BorderColor3 = 'OutlineColor';
+            BackgroundColor3 = 'AccentColor';
+        });
+
+        local ToggleCheck = Library:Create('ImageLabel', {
+            AnchorPoint = Vector2.new(0.5, 0.5);
+            Position = UDim2.new(0.5, 0, 0.5, 0);
+            Size = UDim2.new(0, 10, 0, 10);
+            BackgroundTransparency = 1;
+            Image = 'rbxassetid://6031094667';
+            ImageColor3 = Color3.fromRGB(255, 255, 255);
+            ImageTransparency = 1;
+            ZIndex = 7;
+            Parent = ToggleInner;
         });
 
         local ToggleLabel = Library:CreateLabel({
@@ -1924,7 +1954,7 @@ do
             Text = Info.Text;
             TextXAlignment = Enum.TextXAlignment.Left;
             ZIndex = 6;
-            Parent = ToggleInner;
+            Parent = ToggleOuter;
         });
 
         Library:Create('UIListLayout', {
@@ -1937,31 +1967,67 @@ do
 
         local ToggleRegion = Library:Create('Frame', {
             BackgroundTransparency = 1;
-            Size = UDim2.new(0, 170, 1, 0);
+            Size = UDim2.new(0, 236, 1, 0);
             ZIndex = 8;
             Parent = ToggleOuter;
         });
 
-        Library:OnHighlight(ToggleRegion, ToggleOuter,
-            { BorderColor3 = 'AccentColor' },
-            { BorderColor3 = 'Black' }
-        );
+        local Hovered = false;
+
+        ToggleRegion.MouseEnter:Connect(function()
+            Hovered = true;
+            if not Toggle.Value then
+                TweenService:Create(ToggleStroke, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                    Color = Library.AccentColor
+                }):Play();
+            end;
+        end);
+
+        ToggleRegion.MouseLeave:Connect(function()
+            Hovered = false;
+            if not Toggle.Value then
+                TweenService:Create(ToggleStroke, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                    Color = Library.OutlineColor
+                }):Play();
+            end;
+        end);
+
+        local AnimInfo = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out);
+
+        function Toggle:Display(Animate)
+            local TargetBgTrans = Toggle.Value and 0 or 1;
+            local TargetCheckTrans = Toggle.Value and 0 or 1;
+            local TargetCheckSize = Toggle.Value and UDim2.new(0, 10, 0, 10) or UDim2.new(0, 4, 0, 4);
+            local TargetStrokeColor = Toggle.Value and (Library.AccentColorDark or Library.AccentColor) or (Hovered and Library.AccentColor or Library.OutlineColor);
+
+            if Animate then
+                TweenService:Create(ToggleInner, AnimInfo, {
+                    BackgroundTransparency = TargetBgTrans
+                }):Play();
+
+                TweenService:Create(ToggleCheck, AnimInfo, {
+                    ImageTransparency = TargetCheckTrans,
+                    Size = TargetCheckSize
+                }):Play();
+
+                TweenService:Create(ToggleStroke, AnimInfo, {
+                    Color = TargetStrokeColor
+                }):Play();
+            else
+                ToggleInner.BackgroundTransparency = TargetBgTrans;
+                ToggleCheck.ImageTransparency = TargetCheckTrans;
+                ToggleCheck.Size = TargetCheckSize;
+                ToggleStroke.Color = TargetStrokeColor;
+            end;
+        end;
 
         function Toggle:UpdateColors()
-            Toggle:Display();
+            Toggle:Display(false);
         end;
 
         if type(Info.Tooltip) == 'string' then
             Library:AddToolTip(Info.Tooltip, ToggleRegion)
         end
-
-        function Toggle:Display()
-            ToggleInner.BackgroundColor3 = Toggle.Value and Library.AccentColor or Library.MainColor;
-            ToggleInner.BorderColor3 = Toggle.Value and Library.AccentColorDark or Library.OutlineColor;
-
-            Library.RegistryMap[ToggleInner].Properties.BackgroundColor3 = Toggle.Value and 'AccentColor' or 'MainColor';
-            Library.RegistryMap[ToggleInner].Properties.BorderColor3 = Toggle.Value and 'AccentColorDark' or 'OutlineColor';
-        end;
 
         function Toggle:OnChanged(Func)
             Toggle.Changed = Func;
@@ -1972,7 +2038,7 @@ do
             Bool = (not not Bool);
 
             Toggle.Value = Bool;
-            Toggle:Display();
+            Toggle:Display(true);
 
             for _, Addon in next, Toggle.Addons do
                 if Addon.Type == 'KeyPicker' and Addon.SyncToggleState then
@@ -1999,7 +2065,7 @@ do
             Library:AddToRegistry(ToggleLabel, { TextColor3 = 'RiskColor' })
         end
 
-        Toggle:Display();
+        Toggle:Display(false);
         Groupbox:AddBlank(Info.BlankSize or 5 + 2);
         Groupbox:Resize();
 
@@ -3141,6 +3207,24 @@ function Library:CreateWindow(...)
     });
 
     Library:MakeDraggable(Outer, 25);
+
+    local Glow = Library:Create('ImageLabel', {
+        Name = 'Glow',
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, -20, 0, -20),
+        Size = UDim2.new(1, 40, 1, 40),
+        ZIndex = 0,
+        Image = 'rbxassetid://5028857472',
+        ImageColor3 = Library.AccentColor,
+        ImageTransparency = 0.35,
+        ScaleType = Enum.ScaleType.Slice,
+        SliceCenter = Rect.new(24, 24, 276, 276),
+        Parent = Outer,
+    });
+
+    Library:AddToRegistry(Glow, {
+        ImageColor3 = 'AccentColor';
+    });
 
     local Inner = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
