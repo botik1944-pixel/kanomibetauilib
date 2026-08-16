@@ -441,26 +441,39 @@ do
     function Funcs:AddColorPicker(Idx, Info)
         local ToggleLabel = self.TextLabel;
 
-
         assert(Info.Default, 'AddColorPicker: Missing default value.');
 
         local ColorPicker = {
             Value = Info.Default;
+            Value2 = Info.Default2 or Info.Default;
             Transparency = Info.Transparency or 0;
             Type = 'ColorPicker';
             Title = type(Info.Title) == 'string' and Info.Title or 'Color picker',
             Callback = Info.Callback or function(Color) end;
+            IsGradient = Info.IsGradient or Info.Gradient or false;
+            ActiveColor = 1;
         };
 
-        function ColorPicker:SetHSVFromRGB(Color)
+        function ColorPicker:SetHSVFromRGB(Color, Target)
             local H, S, V = Color3.toHSV(Color);
 
-            ColorPicker.Hue = H;
-            ColorPicker.Sat = S;
-            ColorPicker.Vib = V;
+            if Target == 2 then
+                ColorPicker.Hue2 = H;
+                ColorPicker.Sat2 = S;
+                ColorPicker.Vib2 = V;
+                ColorPicker.Value2 = Color;
+            else
+                ColorPicker.Hue1 = H;
+                ColorPicker.Sat1 = S;
+                ColorPicker.Vib1 = V;
+                ColorPicker.Value = Color;
+            end;
         end;
 
-        ColorPicker:SetHSVFromRGB(ColorPicker.Value);
+        ColorPicker.Hue1, ColorPicker.Sat1, ColorPicker.Vib1 = 0, 0, 1;
+        ColorPicker.Hue2, ColorPicker.Sat2, ColorPicker.Vib2 = 0.8, 0.5, 1;
+        ColorPicker:SetHSVFromRGB(ColorPicker.Value, 1);
+        ColorPicker:SetHSVFromRGB(ColorPicker.Value2, 2);
 
         local DisplayFrame = Library:Create('Frame', {
             BackgroundColor3 = ColorPicker.Value;
@@ -471,6 +484,15 @@ do
             Parent = ToggleLabel;
         });
 
+        local DisplayGradient = Library:Create('UIGradient', {
+            Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, ColorPicker.Value),
+                ColorSequenceKeypoint.new(1, ColorPicker.Value2)
+            });
+            Rotation = 0;
+            Enabled = ColorPicker.IsGradient;
+            Parent = DisplayFrame;
+        });
 
         local CheckerFrame = Library:Create('ImageLabel', {
             BorderSizePixel = 0;
@@ -480,8 +502,6 @@ do
             Visible = not not Info.Transparency;
             Parent = DisplayFrame;
         });
-
-
 
         local PickerFrameOuter = Library:Create('Frame', {
             Name = 'Color';
@@ -516,6 +536,122 @@ do
         });
 
         Library:ApplyAccentGradient(Highlight, 0);
+
+        local DisplayLabel = Library:CreateLabel({
+            Size = UDim2.new(0, 75, 0, 15);
+            Position = UDim2.fromOffset(5, 5);
+            TextXAlignment = Enum.TextXAlignment.Left;
+            TextSize = 13;
+            Text = ColorPicker.Title;
+            TextWrapped = false;
+            ZIndex = 16;
+            Parent = PickerFrameInner;
+        });
+
+        local ColorSlot1 = Library:Create('Frame', {
+            BackgroundColor3 = ColorPicker.Value;
+            BorderColor3 = Library.AccentColor;
+            BorderMode = Enum.BorderMode.Inset;
+            Position = UDim2.new(0, 82, 0, 5);
+            Size = UDim2.new(0, 26, 0, 14);
+            Visible = ColorPicker.IsGradient;
+            ZIndex = 18;
+            Parent = PickerFrameInner;
+        });
+
+        local ColorSlot1Label = Library:CreateLabel({
+            Size = UDim2.new(1, 0, 1, 0);
+            TextSize = 11;
+            Text = '1';
+            TextColor3 = Color3.fromRGB(255, 255, 255);
+            ZIndex = 19;
+            Parent = ColorSlot1;
+        });
+
+        local ColorSlot2 = Library:Create('Frame', {
+            BackgroundColor3 = ColorPicker.Value2;
+            BorderColor3 = Library.OutlineColor;
+            BorderMode = Enum.BorderMode.Inset;
+            Position = UDim2.new(0, 112, 0, 5);
+            Size = UDim2.new(0, 26, 0, 14);
+            Visible = ColorPicker.IsGradient;
+            ZIndex = 18;
+            Parent = PickerFrameInner;
+        });
+
+        local ColorSlot2Label = Library:CreateLabel({
+            Size = UDim2.new(1, 0, 1, 0);
+            TextSize = 11;
+            Text = '2';
+            TextColor3 = Color3.fromRGB(255, 255, 255);
+            ZIndex = 19;
+            Parent = ColorSlot2;
+        });
+
+        ColorSlot1.InputBegan:Connect(function(Input)
+            if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+                ColorPicker.ActiveColor = 1;
+                ColorPicker:Display();
+            end;
+        end);
+
+        ColorSlot2.InputBegan:Connect(function(Input)
+            if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+                ColorPicker.ActiveColor = 2;
+                ColorPicker:Display();
+            end;
+        end);
+
+        local GradientToggleRegion = Library:Create('Frame', {
+            BackgroundTransparency = 1;
+            Position = UDim2.new(1, -80, 0, 4);
+            Size = UDim2.new(0, 76, 0, 16);
+            ZIndex = 18;
+            Parent = PickerFrameInner;
+        });
+
+        local GradientCheckbox = Library:Create('Frame', {
+            BackgroundColor3 = Library.BackgroundColor;
+            BorderColor3 = Library.OutlineColor;
+            BorderMode = Enum.BorderMode.Inset;
+            Position = UDim2.new(0, 0, 0, 2);
+            Size = UDim2.new(0, 12, 0, 12);
+            ZIndex = 19;
+            Parent = GradientToggleRegion;
+        });
+
+        local GradientCheckInner = Library:Create('Frame', {
+            BackgroundColor3 = Color3.new(1, 1, 1);
+            BorderSizePixel = 0;
+            Position = UDim2.new(0, 1, 0, 1);
+            Size = UDim2.new(1, -2, 1, -2);
+            BackgroundTransparency = ColorPicker.IsGradient and 0 or 1;
+            ZIndex = 20;
+            Parent = GradientCheckbox;
+        });
+
+        Library:ApplyAccentGradient(GradientCheckInner, 45);
+
+        local GradientLabel = Library:CreateLabel({
+            Position = UDim2.new(0, 16, 0, 0);
+            Size = UDim2.new(1, -16, 1, 0);
+            TextSize = 12;
+            Text = 'Gradient';
+            TextXAlignment = Enum.TextXAlignment.Left;
+            ZIndex = 19;
+            Parent = GradientToggleRegion;
+        });
+
+        GradientToggleRegion.InputBegan:Connect(function(Input)
+            if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+                ColorPicker.IsGradient = not ColorPicker.IsGradient;
+                if not ColorPicker.IsGradient then
+                    ColorPicker.ActiveColor = 1;
+                end;
+                ColorPicker:Display();
+                Library:AttemptSave();
+            end;
+        end);
 
         local SatVibMapOuter = Library:Create('Frame', {
             BorderColor3 = Color3.new(0, 0, 0);
@@ -682,18 +818,6 @@ do
             });
         end;
 
-        local DisplayLabel = Library:CreateLabel({
-            Size = UDim2.new(1, 0, 0, 14);
-            Position = UDim2.fromOffset(5, 5);
-            TextXAlignment = Enum.TextXAlignment.Left;
-            TextSize = 14;
-            Text = ColorPicker.Title;
-            TextWrapped = false;
-            ZIndex = 16;
-            Parent = PickerFrameInner;
-        });
-
-
         local ContextMenu = {}
         do
             ContextMenu.Options = {}
@@ -796,29 +920,49 @@ do
                 end)
             end
 
-            ContextMenu:AddOption('Copy color', function()
+            ContextMenu:AddOption('Toggle gradient', function()
+                ColorPicker.IsGradient = not ColorPicker.IsGradient;
+                if not ColorPicker.IsGradient then
+                    ColorPicker.ActiveColor = 1;
+                end;
+                ColorPicker:Display();
+                Library:AttemptSave();
+            end)
+
+            ContextMenu:AddOption('Copy color 1', function()
                 Library.ColorClipboard = ColorPicker.Value
-                Library:Notify('Copied color!', 2)
+                Library:Notify('Copied color 1!', 2)
+            end)
+
+            ContextMenu:AddOption('Copy color 2', function()
+                Library.ColorClipboard = ColorPicker.Value2
+                Library:Notify('Copied color 2!', 2)
             end)
 
             ContextMenu:AddOption('Paste color', function()
                 if not Library.ColorClipboard then
                     return Library:Notify('You have not copied a color!', 2)
                 end
-                ColorPicker:SetValueRGB(Library.ColorClipboard)
+                if ColorPicker.ActiveColor == 2 then
+                    ColorPicker:SetHSVFromRGB(Library.ColorClipboard, 2)
+                else
+                    ColorPicker:SetHSVFromRGB(Library.ColorClipboard, 1)
+                end
+                ColorPicker:Display()
+                Library:AttemptSave()
             end)
 
-
             ContextMenu:AddOption('Copy HEX', function()
-                pcall(setclipboard, ColorPicker.Value:ToHex())
+                local col = (ColorPicker.ActiveColor == 2) and ColorPicker.Value2 or ColorPicker.Value;
+                pcall(setclipboard, col:ToHex())
                 Library:Notify('Copied hex code to clipboard!', 2)
             end)
 
             ContextMenu:AddOption('Copy RGB', function()
-                pcall(setclipboard, table.concat({ math.floor(ColorPicker.Value.R * 255), math.floor(ColorPicker.Value.G * 255), math.floor(ColorPicker.Value.B * 255) }, ', '))
+                local col = (ColorPicker.ActiveColor == 2) and ColorPicker.Value2 or ColorPicker.Value;
+                pcall(setclipboard, table.concat({ math.floor(col.R * 255), math.floor(col.G * 255), math.floor(col.B * 255) }, ', '))
                 Library:Notify('Copied RGB values to clipboard!', 2)
             end)
-
         end
 
         Library:AddToRegistry(PickerFrameInner, { BackgroundColor3 = 'BackgroundColor'; BorderColor3 = 'OutlineColor'; });
@@ -845,7 +989,7 @@ do
             if enter then
                 local success, result = pcall(Color3.fromHex, HueBox.Text)
                 if success and typeof(result) == 'Color3' then
-                    ColorPicker.Hue, ColorPicker.Sat, ColorPicker.Vib = Color3.toHSV(result)
+                    ColorPicker:SetHSVFromRGB(result, ColorPicker.ActiveColor)
                 end
             end
 
@@ -856,7 +1000,7 @@ do
             if enter then
                 local r, g, b = RgbBox.Text:match('(%d+),%s*(%d+),%s*(%d+)')
                 if r and g and b then
-                    ColorPicker.Hue, ColorPicker.Sat, ColorPicker.Vib = Color3.toHSV(Color3.fromRGB(r, g, b))
+                    ColorPicker:SetHSVFromRGB(Color3.fromRGB(tonumber(r), tonumber(g), tonumber(b)), ColorPicker.ActiveColor)
                 end
             end
 
@@ -864,33 +1008,63 @@ do
         end)
 
         function ColorPicker:Display()
-            ColorPicker.Value = Color3.fromHSV(ColorPicker.Hue, ColorPicker.Sat, ColorPicker.Vib);
-            SatVibMap.BackgroundColor3 = Color3.fromHSV(ColorPicker.Hue, 1, 1);
+            ColorPicker.Value = Color3.fromHSV(ColorPicker.Hue1, ColorPicker.Sat1, ColorPicker.Vib1);
+            ColorPicker.Value2 = Color3.fromHSV(ColorPicker.Hue2, ColorPicker.Sat2, ColorPicker.Vib2);
 
-            Library:Create(DisplayFrame, {
-                BackgroundColor3 = ColorPicker.Value;
-                BackgroundTransparency = ColorPicker.Transparency;
-                BorderColor3 = Library:GetDarkerColor(ColorPicker.Value);
-            });
+            local curHue = (ColorPicker.ActiveColor == 2) and ColorPicker.Hue2 or ColorPicker.Hue1;
+            local curSat = (ColorPicker.ActiveColor == 2) and ColorPicker.Sat2 or ColorPicker.Sat1;
+            local curVib = (ColorPicker.ActiveColor == 2) and ColorPicker.Vib2 or ColorPicker.Vib1;
+            local curVal = (ColorPicker.ActiveColor == 2) and ColorPicker.Value2 or ColorPicker.Value;
+
+            SatVibMap.BackgroundColor3 = Color3.fromHSV(curHue, 1, 1);
+            CursorOuter.Position = UDim2.new(curSat, 0, 1 - curVib, 0);
+            HueCursor.Position = UDim2.new(0, 0, curHue, 0);
+
+            HueBox.Text = '#' .. curVal:ToHex();
+            RgbBox.Text = table.concat({ math.floor(curVal.R * 255), math.floor(curVal.G * 255), math.floor(curVal.B * 255) }, ', ');
+
+            if ColorPicker.IsGradient then
+                GradientCheckInner.BackgroundTransparency = 0;
+                ColorSlot1.Visible = true;
+                ColorSlot2.Visible = true;
+
+                ColorSlot1.BackgroundColor3 = ColorPicker.Value;
+                ColorSlot2.BackgroundColor3 = ColorPicker.Value2;
+
+                ColorSlot1.BorderColor3 = (ColorPicker.ActiveColor == 1) and Library.AccentColor or Library.OutlineColor;
+                ColorSlot2.BorderColor3 = (ColorPicker.ActiveColor == 2) and Library.AccentColor or Library.OutlineColor;
+
+                DisplayGradient.Enabled = true;
+                DisplayGradient.Color = ColorSequence.new({
+                    ColorSequenceKeypoint.new(0, ColorPicker.Value),
+                    ColorSequenceKeypoint.new(1, ColorPicker.Value2)
+                });
+                DisplayFrame.BackgroundColor3 = Color3.new(1, 1, 1);
+                DisplayFrame.BackgroundTransparency = ColorPicker.Transparency;
+                DisplayFrame.BorderColor3 = Library:GetDarkerColor(ColorPicker.Value);
+            else
+                GradientCheckInner.BackgroundTransparency = 1;
+                ColorSlot1.Visible = false;
+                ColorSlot2.Visible = false;
+
+                DisplayGradient.Enabled = false;
+                DisplayFrame.BackgroundColor3 = ColorPicker.Value;
+                DisplayFrame.BackgroundTransparency = ColorPicker.Transparency;
+                DisplayFrame.BorderColor3 = Library:GetDarkerColor(ColorPicker.Value);
+            end;
 
             if TransparencyBoxInner then
-                TransparencyBoxInner.BackgroundColor3 = ColorPicker.Value;
+                TransparencyBoxInner.BackgroundColor3 = curVal;
                 TransparencyCursor.Position = UDim2.new(1 - ColorPicker.Transparency, 0, 0, 0);
             end;
 
-            CursorOuter.Position = UDim2.new(ColorPicker.Sat, 0, 1 - ColorPicker.Vib, 0);
-            HueCursor.Position = UDim2.new(0, 0, ColorPicker.Hue, 0);
-
-            HueBox.Text = '#' .. ColorPicker.Value:ToHex()
-            RgbBox.Text = table.concat({ math.floor(ColorPicker.Value.R * 255), math.floor(ColorPicker.Value.G * 255), math.floor(ColorPicker.Value.B * 255) }, ', ')
-
-            Library:SafeCallback(ColorPicker.Callback, ColorPicker.Value);
-            Library:SafeCallback(ColorPicker.Changed, ColorPicker.Value);
+            Library:SafeCallback(ColorPicker.Callback, ColorPicker.Value, ColorPicker.Transparency, ColorPicker.IsGradient, ColorPicker.Value2);
+            Library:SafeCallback(ColorPicker.Changed, ColorPicker.Value, ColorPicker.Transparency, ColorPicker.IsGradient, ColorPicker.Value2);
         end;
 
         function ColorPicker:OnChanged(Func)
             ColorPicker.Changed = Func;
-            Func(ColorPicker.Value)
+            Func(ColorPicker.Value, ColorPicker.Transparency, ColorPicker.IsGradient, ColorPicker.Value2)
         end;
 
         function ColorPicker:Show()
@@ -910,17 +1084,42 @@ do
             Library.OpenedFrames[PickerFrameOuter] = nil;
         end;
 
-        function ColorPicker:SetValue(HSV, Transparency)
-            local Color = Color3.fromHSV(HSV[1], HSV[2], HSV[3]);
-
+        function ColorPicker:SetValue(HSV, Transparency, IsGradient, HSV2)
+            local Color1 = Color3.fromHSV(HSV[1], HSV[2], HSV[3]);
             ColorPicker.Transparency = Transparency or 0;
-            ColorPicker:SetHSVFromRGB(Color);
+            ColorPicker:SetHSVFromRGB(Color1, 1);
+
+            if HSV2 then
+                local Color2 = Color3.fromHSV(HSV2[1], HSV2[2], HSV2[3]);
+                ColorPicker:SetHSVFromRGB(Color2, 2);
+            end;
+
+            if IsGradient ~= nil then
+                ColorPicker.IsGradient = IsGradient;
+            end;
+
             ColorPicker:Display();
         end;
 
-        function ColorPicker:SetValueRGB(Color, Transparency)
+        function ColorPicker:SetValueRGB(Color, Transparency, Color2, IsGradient)
             ColorPicker.Transparency = Transparency or 0;
-            ColorPicker:SetHSVFromRGB(Color);
+            ColorPicker:SetHSVFromRGB(Color, 1);
+
+            if Color2 then
+                ColorPicker:SetHSVFromRGB(Color2, 2);
+            end;
+
+            if IsGradient ~= nil then
+                ColorPicker.IsGradient = IsGradient;
+            end;
+
+            ColorPicker:Display();
+        end;
+
+        function ColorPicker:SetGradient(Bool, Color1, Color2)
+            ColorPicker.IsGradient = Bool;
+            if Color1 then ColorPicker:SetHSVFromRGB(Color1, 1) end
+            if Color2 then ColorPicker:SetHSVFromRGB(Color2, 2) end
             ColorPicker:Display();
         end;
 
@@ -935,8 +1134,17 @@ do
                     local MaxY = MinY + SatVibMap.AbsoluteSize.Y;
                     local MouseY = math.clamp(Mouse.Y, MinY, MaxY);
 
-                    ColorPicker.Sat = (MouseX - MinX) / (MaxX - MinX);
-                    ColorPicker.Vib = 1 - ((MouseY - MinY) / (MaxY - MinY));
+                    local sat = (MouseX - MinX) / (MaxX - MinX);
+                    local vib = 1 - ((MouseY - MinY) / (MaxY - MinY));
+
+                    if ColorPicker.ActiveColor == 2 then
+                        ColorPicker.Sat2 = sat;
+                        ColorPicker.Vib2 = vib;
+                    else
+                        ColorPicker.Sat1 = sat;
+                        ColorPicker.Vib1 = vib;
+                    end;
+
                     ColorPicker:Display();
 
                     RenderStepped:Wait();
@@ -953,7 +1161,14 @@ do
                     local MaxY = MinY + HueSelectorInner.AbsoluteSize.Y;
                     local MouseY = math.clamp(Mouse.Y, MinY, MaxY);
 
-                    ColorPicker.Hue = ((MouseY - MinY) / (MaxY - MinY));
+                    local hue = ((MouseY - MinY) / (MaxY - MinY));
+
+                    if ColorPicker.ActiveColor == 2 then
+                        ColorPicker.Hue2 = hue;
+                    else
+                        ColorPicker.Hue1 = hue;
+                    end;
+
                     ColorPicker:Display();
 
                     RenderStepped:Wait();
