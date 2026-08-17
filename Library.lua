@@ -418,15 +418,6 @@ function Library:Unload()
         Connection:Disconnect()
     end
 
-    if hasDrawing then
-        for _, Item in ipairs(CursorTriangles) do
-            pcall(function() Item.Object:Remove() end)
-        end
-        if CursorOutline then
-            pcall(function() CursorOutline:Remove() end)
-        end
-    end
-
     InputService.MouseIconEnabled = true
 
     if Library.OnUnload then
@@ -446,173 +437,7 @@ Library:GiveSignal(ScreenGui.DescendantRemoving:Connect(function(Instance)
     end;
 end))
 
-local CursorOutline = nil;
-local CursorTriangles = {};
-local Slices = 6;
-local hasDrawing = false;
-
-pcall(function()
-    if not Drawing or type(Drawing.new) ~= 'function' then
-        return
-    end
-
-    local Tip = Drawing.new('Triangle');
-    Tip.Thickness = 1;
-    Tip.Filled = true;
-    Tip.Transparency = 1;
-    Tip.Visible = false;
-    Tip.Color = Library.AccentColor;
-    table.insert(CursorTriangles, { Type = 'Tip', Object = Tip, t0 = 0, t1 = 1 / Slices, Factor = 0.5 / Slices });
-
-    for i = 2, Slices do
-        local t0 = (i - 1) / Slices;
-        local t1 = i / Slices;
-        local factor = (t0 + t1) / 2;
-
-        local Tri1 = Drawing.new('Triangle');
-        Tri1.Thickness = 1;
-        Tri1.Filled = true;
-        Tri1.Transparency = 1;
-        Tri1.Visible = false;
-        Tri1.Color = Library.AccentColor;
-
-        local Tri2 = Drawing.new('Triangle');
-        Tri2.Thickness = 1;
-        Tri2.Filled = true;
-        Tri2.Transparency = 1;
-        Tri2.Visible = false;
-        Tri2.Color = Library.AccentColor;
-
-        table.insert(CursorTriangles, { Type = 'Quad1', Object = Tri1, t0 = t0, t1 = t1, Factor = factor });
-        table.insert(CursorTriangles, { Type = 'Quad2', Object = Tri2, t0 = t0, t1 = t1, Factor = factor });
-    end
-
-    CursorOutline = Drawing.new('Triangle');
-    CursorOutline.Thickness = 1;
-    CursorOutline.Filled = false;
-    CursorOutline.Transparency = 1;
-    CursorOutline.Color = Color3.new(0, 0, 0);
-    CursorOutline.Visible = false;
-
-    hasDrawing = true;
-end);
-
-local CursorContainer = Library:Create('Frame', {
-    Name = 'KanomiCursor',
-    AnchorPoint = Vector2.new(0, 0),
-    BackgroundTransparency = 1,
-    Position = UDim2.fromOffset(-100, -100),
-    Size = UDim2.new(0, 24, 0, 24),
-    Visible = false,
-    ZIndex = 2147483647,
-    Parent = ScreenGui,
-});
-
-local CursorShadow = Library:Create('ImageLabel', {
-    BackgroundTransparency = 1,
-    Image = 'rbxasset://textures/Cursors/KeyboardMouse/ArrowFarCursor.png',
-    ImageColor3 = Color3.new(0, 0, 0),
-    Position = UDim2.new(0, 0, 0, 0),
-    Size = UDim2.new(0, 20, 0, 20),
-    ZIndex = 2147483646,
-    Parent = CursorContainer,
-});
-
-local CursorInner = Library:Create('ImageLabel', {
-    BackgroundTransparency = 1,
-    Image = 'rbxasset://textures/Cursors/KeyboardMouse/ArrowFarCursor.png',
-    ImageColor3 = Color3.new(1, 1, 1),
-    Position = UDim2.new(0, 1, 0, 1),
-    Size = UDim2.new(0, 18, 0, 18),
-    ZIndex = 2147483647,
-    Parent = CursorContainer,
-});
-
-Library:ApplyAccentGradient(CursorInner, 45, true);
-
-local function UpdateCursorPosition()
-    if not Library.Toggled then
-        if hasDrawing then
-            for _, Item in ipairs(CursorTriangles) do Item.Object.Visible = false end
-            if CursorOutline then CursorOutline.Visible = false end
-        end
-        CursorContainer.Visible = false
-        return
-    end
-
-    local mPos = InputService:GetMouseLocation();
-
-    if hasDrawing then
-        local bOffset = Vector2.new(16, 6);
-        local cOffset = Vector2.new(6, 16);
-
-        local A = mPos;
-        local B = mPos + bOffset;
-        local C = mPos + cOffset;
-
-        local color1 = Library.AccentColor or Color3.fromHex('#961dcf');
-        local color2 = Library.AccentColor2 or Color3.fromHex('#e8b8ff');
-
-        for _, Item in ipairs(CursorTriangles) do
-            local tri = Item.Object;
-            tri.Color = color1:Lerp(color2, Item.Factor);
-            tri.Visible = true;
-
-            local t0 = Item.t0;
-            local t1 = Item.t1;
-
-            if Item.Type == 'Tip' then
-                tri.PointA = A;
-                tri.PointB = A + bOffset * t1;
-                tri.PointC = A + cOffset * t1;
-            elseif Item.Type == 'Quad1' then
-                tri.PointA = A + bOffset * t0;
-                tri.PointB = A + bOffset * t1;
-                tri.PointC = A + cOffset * t0;
-            elseif Item.Type == 'Quad2' then
-                tri.PointA = A + bOffset * t1;
-                tri.PointB = A + cOffset * t1;
-                tri.PointC = A + cOffset * t0;
-            end
-        end
-
-        if CursorOutline then
-            CursorOutline.PointA = A;
-            CursorOutline.PointB = B;
-            CursorOutline.PointC = C;
-            CursorOutline.Visible = true;
-        end
-    else
-        CursorContainer.Position = UDim2.fromOffset(mPos.X, mPos.Y);
-        CursorContainer.Visible = true;
-    end
-end
-
-local function SetCursorVisible(visible)
-    if hasDrawing then
-        for _, Item in ipairs(CursorTriangles) do
-            Item.Object.Visible = visible;
-        end
-        if CursorOutline then
-            CursorOutline.Visible = visible;
-        end
-    else
-        CursorContainer.Visible = visible;
-    end
-    if visible then
-        UpdateCursorPosition();
-    end
-end
-
-Library.CursorContainer = CursorContainer;
-Library.SetCursorVisible = SetCursorVisible;
-Library.UpdateCursorPosition = UpdateCursorPosition;
-
-Library:GiveSignal(RenderStepped:Connect(function()
-    if Library.Toggled then
-        UpdateCursorPosition()
-    end
-end));
+InputService.MouseIconEnabled = true;
 
 local BaseAddons = {};
 
@@ -4190,8 +4015,7 @@ function Library:CreateWindow(...)
         end;
 
         Library.Toggled = Toggled;
-        SetCursorVisible(Toggled);
-        InputService.MouseIconEnabled = not Toggled;
+        InputService.MouseIconEnabled = true;
 
         for _, Desc in next, Outer:GetDescendants() do
             local Properties = {};
