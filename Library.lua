@@ -415,6 +415,12 @@ function Library:Unload()
         Connection:Disconnect()
     end
 
+    if CursorGui then
+        CursorGui.Enabled = false
+        CursorGui:Destroy()
+    end
+
+    InputService.MouseIconEnabled = true
 
     if Library.OnUnload then
         Library.OnUnload()
@@ -432,6 +438,75 @@ Library:GiveSignal(ScreenGui.DescendantRemoving:Connect(function(Instance)
         Library:RemoveFromRegistry(Instance);
     end;
 end))
+
+local CursorGui = Instance.new('ScreenGui');
+ProtectGui(CursorGui);
+CursorGui.Name = 'LibraryCursor';
+CursorGui.DisplayOrder = 999999999;
+CursorGui.IgnoreGuiInset = true;
+CursorGui.ResetOnSpawn = false;
+CursorGui.ZIndexBehavior = Enum.ZIndexBehavior.Global;
+CursorGui.Enabled = false;
+CursorGui.Parent = CoreGui;
+
+local CursorContainer = Library:Create('Frame', {
+    Name = 'Cursor',
+    BackgroundTransparency = 1,
+    Size = UDim2.fromOffset(24, 24),
+    AnchorPoint = Vector2.new(0, 0),
+    Position = UDim2.fromOffset(0, 0),
+    ZIndex = 999999999,
+    Parent = CursorGui,
+});
+
+local CursorShadow = Library:Create('ImageLabel', {
+    Name = 'Shadow',
+    BackgroundTransparency = 1,
+    BorderSizePixel = 0,
+    Size = UDim2.fromOffset(19, 19),
+    Position = UDim2.fromOffset(1, 1),
+    Image = 'rbxassetid://13837947119',
+    ImageColor3 = Color3.new(0, 0, 0),
+    ImageTransparency = 0.6,
+    ZIndex = 999999998,
+    Parent = CursorContainer,
+});
+
+local CursorOutline = Library:Create('ImageLabel', {
+    Name = 'Outline',
+    BackgroundTransparency = 1,
+    BorderSizePixel = 0,
+    Size = UDim2.fromOffset(19, 19),
+    Position = UDim2.fromOffset(0, 0),
+    Image = 'rbxassetid://13837947119',
+    ImageColor3 = Color3.new(0, 0, 0),
+    ZIndex = 999999999,
+    Parent = CursorContainer,
+});
+
+local CursorFill = Library:Create('ImageLabel', {
+    Name = 'Fill',
+    BackgroundTransparency = 1,
+    BorderSizePixel = 0,
+    Size = UDim2.fromOffset(17, 17),
+    Position = UDim2.fromOffset(1, 1),
+    Image = 'rbxassetid://13837947119',
+    ImageColor3 = Color3.new(1, 1, 1),
+    ZIndex = 1000000000,
+    Parent = CursorContainer,
+});
+
+Library:ApplyAccentGradient(CursorFill, 45);
+
+Library.CursorGui = CursorGui;
+Library.Cursor = CursorContainer;
+
+Library:GiveSignal(RenderStepped:Connect(function()
+    if CursorGui and CursorGui.Enabled then
+        local mPos = InputService:GetMouseLocation();
+        CursorContainer.Position = UDim2.fromOffset(mPos.X, mPos.Y);
+    end
+end));
 
 local BaseAddons = {};
 
@@ -4006,53 +4081,12 @@ function Library:CreateWindow(...)
         if Toggled then
             -- A bit scuffed, but if we're going from not toggled -> toggled we want to show the frame immediately so that the fade is visible.
             Outer.Visible = true;
-
-            task.spawn(function()
-                -- TODO: add cursor fade?
-                local State = InputService.MouseIconEnabled;
-
-                local Cursor, CursorOutline
-                local hasDrawing = pcall(function()
-                    Cursor = Drawing.new('Triangle');
-                    Cursor.Thickness = 1;
-                    Cursor.Filled = true;
-                    Cursor.Visible = true;
-
-                    CursorOutline = Drawing.new('Triangle');
-                    CursorOutline.Thickness = 1;
-                    CursorOutline.Filled = false;
-                    CursorOutline.Color = Color3.new(0, 0, 0);
-                    CursorOutline.Visible = true;
-                end)
-
-                while Toggled and ScreenGui.Parent do
-                    InputService.MouseIconEnabled = false;
-
-                    local mPos = InputService:GetMouseLocation();
-
-                    if hasDrawing and Cursor and CursorOutline then
-                        Cursor.Color = Library.AccentColor;
-
-                        Cursor.PointA = Vector2.new(mPos.X, mPos.Y);
-                        Cursor.PointB = Vector2.new(mPos.X + 16, mPos.Y + 6);
-                        Cursor.PointC = Vector2.new(mPos.X + 6, mPos.Y + 16);
-
-                        CursorOutline.PointA = Cursor.PointA;
-                        CursorOutline.PointB = Cursor.PointB;
-                        CursorOutline.PointC = Cursor.PointC;
-                    end;
-
-                    RenderStepped:Wait();
-                end;
-
-                InputService.MouseIconEnabled = State;
-
-                if hasDrawing then
-                    if Cursor then pcall(function() Cursor:Remove() end) end
-                    if CursorOutline then pcall(function() CursorOutline:Remove() end) end
-                end
-            end);
         end;
+
+        if CursorGui then
+            CursorGui.Enabled = Toggled;
+        end;
+        InputService.MouseIconEnabled = not Toggled;
 
         for _, Desc in next, Outer:GetDescendants() do
             local Properties = {};
