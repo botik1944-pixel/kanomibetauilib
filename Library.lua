@@ -424,11 +424,6 @@ function Library:Unload()
         end
     end
 
-    if CursorGui then
-        CursorGui.Enabled = false
-        CursorGui:Destroy()
-    end
-
     InputService.MouseIconEnabled = true
 
     if Library.OnUnload then
@@ -451,8 +446,6 @@ end))
 local CursorOutline;
 local CursorTriangles = {};
 local Slices = 14;
-local CursorGui;
-local FallbackCursor;
 
 local hasDrawing = pcall(function()
     for i = 1, Slices do
@@ -460,8 +453,8 @@ local hasDrawing = pcall(function()
             local Tri = Drawing.new('Triangle');
             Tri.Thickness = 1;
             Tri.Filled = true;
+            Tri.Transparency = 1;
             Tri.Visible = false;
-            Tri.ZIndex = 999999;
             table.insert(CursorTriangles, { Type = 'Tip', Object = Tri, t0 = 0, t1 = 1 / Slices, Factor = 0.5 / Slices });
         else
             local t0 = (i - 1) / Slices;
@@ -471,14 +464,14 @@ local hasDrawing = pcall(function()
             local Tri1 = Drawing.new('Triangle');
             Tri1.Thickness = 1;
             Tri1.Filled = true;
+            Tri1.Transparency = 1;
             Tri1.Visible = false;
-            Tri1.ZIndex = 999999;
 
             local Tri2 = Drawing.new('Triangle');
             Tri2.Thickness = 1;
             Tri2.Filled = true;
+            Tri2.Transparency = 1;
             Tri2.Visible = false;
-            Tri2.ZIndex = 999999;
 
             table.insert(CursorTriangles, { Type = 'Quad1', Object = Tri1, t0 = t0, t1 = t1, Factor = factor });
             table.insert(CursorTriangles, { Type = 'Quad2', Object = Tri2, t0 = t0, t1 = t1, Factor = factor });
@@ -486,38 +479,12 @@ local hasDrawing = pcall(function()
     end
 
     CursorOutline = Drawing.new('Triangle');
-    CursorOutline.Thickness = 1.5;
+    CursorOutline.Thickness = 1;
     CursorOutline.Filled = false;
+    CursorOutline.Transparency = 1;
     CursorOutline.Color = Color3.new(0, 0, 0);
     CursorOutline.Visible = false;
-    CursorOutline.ZIndex = 1000000;
 end);
-
-if not hasDrawing then
-    CursorGui = Instance.new('ScreenGui');
-    ProtectGui(CursorGui);
-    CursorGui.Name = 'LibraryCursor';
-    CursorGui.DisplayOrder = 999999999;
-    CursorGui.IgnoreGuiInset = true;
-    CursorGui.ResetOnSpawn = false;
-    CursorGui.ZIndexBehavior = Enum.ZIndexBehavior.Global;
-    CursorGui.Enabled = false;
-    CursorGui.Parent = CoreGui;
-
-    FallbackCursor = Library:Create('ImageLabel', {
-        Name = 'Cursor',
-        BackgroundTransparency = 1,
-        Size = UDim2.fromOffset(20, 20),
-        AnchorPoint = Vector2.new(0, 0),
-        Position = UDim2.fromOffset(0, 0),
-        Image = 'rbxasset://textures/Cursors/KeyboardMouse/ArrowFarLeft.png',
-        ImageColor3 = Color3.new(1, 1, 1),
-        ZIndex = 999999999,
-        Parent = CursorGui,
-    });
-
-    Library:ApplyAccentGradient(FallbackCursor, 45);
-end
 
 local function UpdateCursorPosition()
     if not Library.Toggled then return end
@@ -564,8 +531,6 @@ local function UpdateCursorPosition()
             CursorOutline.PointC = C;
             CursorOutline.Visible = true;
         end
-    elseif FallbackCursor then
-        FallbackCursor.Position = UDim2.fromOffset(mPos.X, mPos.Y);
     end
 end
 
@@ -577,11 +542,6 @@ local function SetCursorVisible(visible)
         if CursorOutline then
             CursorOutline.Visible = visible;
         end
-        if visible then
-            UpdateCursorPosition();
-        end
-    elseif CursorGui then
-        CursorGui.Enabled = visible;
         if visible then
             UpdateCursorPosition();
         end
