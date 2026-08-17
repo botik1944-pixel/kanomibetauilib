@@ -424,6 +424,11 @@ function Library:Unload()
         end
     end
 
+    if CursorGui then
+        CursorGui.Enabled = false
+        CursorGui:Destroy()
+    end
+
     InputService.MouseIconEnabled = true
 
     if Library.OnUnload then
@@ -446,6 +451,8 @@ end))
 local CursorOutline;
 local CursorTriangles = {};
 local Slices = 14;
+local CursorGui;
+local FallbackCursor;
 
 local hasDrawing = pcall(function()
     for i = 1, Slices do
@@ -486,61 +493,98 @@ local hasDrawing = pcall(function()
     CursorOutline.ZIndex = 1000000;
 end);
 
+if not hasDrawing then
+    CursorGui = Instance.new('ScreenGui');
+    ProtectGui(CursorGui);
+    CursorGui.Name = 'LibraryCursor';
+    CursorGui.DisplayOrder = 999999999;
+    CursorGui.IgnoreGuiInset = true;
+    CursorGui.ResetOnSpawn = false;
+    CursorGui.ZIndexBehavior = Enum.ZIndexBehavior.Global;
+    CursorGui.Enabled = false;
+    CursorGui.Parent = CoreGui;
+
+    FallbackCursor = Library:Create('ImageLabel', {
+        Name = 'Cursor',
+        BackgroundTransparency = 1,
+        Size = UDim2.fromOffset(20, 20),
+        AnchorPoint = Vector2.new(0, 0),
+        Position = UDim2.fromOffset(0, 0),
+        Image = 'rbxasset://textures/Cursors/KeyboardMouse/ArrowFarLeft.png',
+        ImageColor3 = Color3.new(1, 1, 1),
+        ZIndex = 999999999,
+        Parent = CursorGui,
+    });
+
+    Library:ApplyAccentGradient(FallbackCursor, 45);
+end
+
 local function UpdateCursorPosition()
-    if not hasDrawing or not Library.Toggled then return end
+    if not Library.Toggled then return end
 
     local mPos = InputService:GetMouseLocation();
-    local bOffset = Vector2.new(16, 6);
-    local cOffset = Vector2.new(6, 16);
 
-    local A = mPos;
-    local B = mPos + bOffset;
-    local C = mPos + cOffset;
+    if hasDrawing then
+        local bOffset = Vector2.new(16, 6);
+        local cOffset = Vector2.new(6, 16);
 
-    local color1 = Library.AccentColor or Color3.fromHex('#961dcf');
-    local color2 = Library.AccentColor2 or Color3.fromHex('#e8b8ff');
+        local A = mPos;
+        local B = mPos + bOffset;
+        local C = mPos + cOffset;
 
-    for _, Item in ipairs(CursorTriangles) do
-        local tri = Item.Object;
-        tri.Color = color1:Lerp(color2, Item.Factor);
-        tri.Visible = true;
+        local color1 = Library.AccentColor or Color3.fromHex('#961dcf');
+        local color2 = Library.AccentColor2 or Color3.fromHex('#e8b8ff');
 
-        local t0 = Item.t0;
-        local t1 = Item.t1;
+        for _, Item in ipairs(CursorTriangles) do
+            local tri = Item.Object;
+            tri.Color = color1:Lerp(color2, Item.Factor);
+            tri.Visible = true;
 
-        if Item.Type == 'Tip' then
-            tri.PointA = A;
-            tri.PointB = A + bOffset * t1;
-            tri.PointC = A + cOffset * t1;
-        elseif Item.Type == 'Quad1' then
-            tri.PointA = A + bOffset * t0;
-            tri.PointB = A + bOffset * t1;
-            tri.PointC = A + cOffset * t0;
-        elseif Item.Type == 'Quad2' then
-            tri.PointA = A + bOffset * t1;
-            tri.PointB = A + cOffset * t1;
-            tri.PointC = A + cOffset * t0;
+            local t0 = Item.t0;
+            local t1 = Item.t1;
+
+            if Item.Type == 'Tip' then
+                tri.PointA = A;
+                tri.PointB = A + bOffset * t1;
+                tri.PointC = A + cOffset * t1;
+            elseif Item.Type == 'Quad1' then
+                tri.PointA = A + bOffset * t0;
+                tri.PointB = A + bOffset * t1;
+                tri.PointC = A + cOffset * t0;
+            elseif Item.Type == 'Quad2' then
+                tri.PointA = A + bOffset * t1;
+                tri.PointB = A + cOffset * t1;
+                tri.PointC = A + cOffset * t0;
+            end
         end
-    end
 
-    if CursorOutline then
-        CursorOutline.PointA = A;
-        CursorOutline.PointB = B;
-        CursorOutline.PointC = C;
-        CursorOutline.Visible = true;
+        if CursorOutline then
+            CursorOutline.PointA = A;
+            CursorOutline.PointB = B;
+            CursorOutline.PointC = C;
+            CursorOutline.Visible = true;
+        end
+    elseif FallbackCursor then
+        FallbackCursor.Position = UDim2.fromOffset(mPos.X, mPos.Y);
     end
 end
 
 local function SetCursorVisible(visible)
-    if not hasDrawing then return end
-    for _, Item in ipairs(CursorTriangles) do
-        Item.Object.Visible = visible;
-    end
-    if CursorOutline then
-        CursorOutline.Visible = visible;
-    end
-    if visible then
-        UpdateCursorPosition();
+    if hasDrawing then
+        for _, Item in ipairs(CursorTriangles) do
+            Item.Object.Visible = visible;
+        end
+        if CursorOutline then
+            CursorOutline.Visible = visible;
+        end
+        if visible then
+            UpdateCursorPosition();
+        end
+    elseif CursorGui then
+        CursorGui.Enabled = visible;
+        if visible then
+            UpdateCursorPosition();
+        end
     end
 end
 
