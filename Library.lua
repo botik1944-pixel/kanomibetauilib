@@ -443,39 +443,54 @@ Library:GiveSignal(ScreenGui.DescendantRemoving:Connect(function(Instance)
     end;
 end))
 
-local CursorOutline;
+local CursorOutline = nil;
 local CursorTriangles = {};
-local Slices = 14;
+local Slices = 3;
 
-local hasDrawing = pcall(function()
-    for i = 1, Slices do
-        if i == 1 then
-            local Tri = Drawing.new('Triangle');
-            Tri.Thickness = 1;
-            Tri.Filled = true;
-            Tri.Transparency = 1;
-            Tri.Visible = false;
-            table.insert(CursorTriangles, { Type = 'Tip', Object = Tri, t0 = 0, t1 = 1 / Slices, Factor = 0.5 / Slices });
-        else
-            local t0 = (i - 1) / Slices;
-            local t1 = i / Slices;
-            local factor = (t0 + t1) / 2;
+local hasDrawing = false;
+pcall(function()
+    if not Drawing or type(Drawing.new) ~= 'function' then
+        return
+    end
 
-            local Tri1 = Drawing.new('Triangle');
-            Tri1.Thickness = 1;
-            Tri1.Filled = true;
-            Tri1.Transparency = 1;
-            Tri1.Visible = false;
+    local Tip = Drawing.new('Triangle');
+    Tip.Thickness = 1;
+    Tip.Filled = true;
+    Tip.Transparency = 1;
+    Tip.Visible = false;
+    Tip.PointA = Vector2.new(0, 0);
+    Tip.PointB = Vector2.new(5, 2);
+    Tip.PointC = Vector2.new(2, 5);
+    Tip.Color = Library.AccentColor;
+    table.insert(CursorTriangles, { Type = 'Tip', Object = Tip, t0 = 0, t1 = 1 / Slices, Factor = 0.5 / Slices });
 
-            local Tri2 = Drawing.new('Triangle');
-            Tri2.Thickness = 1;
-            Tri2.Filled = true;
-            Tri2.Transparency = 1;
-            Tri2.Visible = false;
+    for i = 2, Slices do
+        local t0 = (i - 1) / Slices;
+        local t1 = i / Slices;
+        local factor = (t0 + t1) / 2;
 
-            table.insert(CursorTriangles, { Type = 'Quad1', Object = Tri1, t0 = t0, t1 = t1, Factor = factor });
-            table.insert(CursorTriangles, { Type = 'Quad2', Object = Tri2, t0 = t0, t1 = t1, Factor = factor });
-        end
+        local Tri1 = Drawing.new('Triangle');
+        Tri1.Thickness = 1;
+        Tri1.Filled = true;
+        Tri1.Transparency = 1;
+        Tri1.Visible = false;
+        Tri1.PointA = Vector2.new(0, 0);
+        Tri1.PointB = Vector2.new(1, 1);
+        Tri1.PointC = Vector2.new(0, 1);
+        Tri1.Color = Library.AccentColor;
+
+        local Tri2 = Drawing.new('Triangle');
+        Tri2.Thickness = 1;
+        Tri2.Filled = true;
+        Tri2.Transparency = 1;
+        Tri2.Visible = false;
+        Tri2.PointA = Vector2.new(0, 0);
+        Tri2.PointB = Vector2.new(1, 1);
+        Tri2.PointC = Vector2.new(0, 1);
+        Tri2.Color = Library.AccentColor;
+
+        table.insert(CursorTriangles, { Type = 'Quad1', Object = Tri1, t0 = t0, t1 = t1, Factor = factor });
+        table.insert(CursorTriangles, { Type = 'Quad2', Object = Tri2, t0 = t0, t1 = t1, Factor = factor });
     end
 
     CursorOutline = Drawing.new('Triangle');
@@ -484,6 +499,11 @@ local hasDrawing = pcall(function()
     CursorOutline.Transparency = 1;
     CursorOutline.Color = Color3.new(0, 0, 0);
     CursorOutline.Visible = false;
+    CursorOutline.PointA = Vector2.new(0, 0);
+    CursorOutline.PointB = Vector2.new(16, 6);
+    CursorOutline.PointC = Vector2.new(6, 16);
+
+    hasDrawing = true;
 end);
 
 local function UpdateCursorPosition()
@@ -4134,7 +4154,12 @@ function Library:CreateWindow(...)
 
         Library.Toggled = Toggled;
         SetCursorVisible(Toggled);
-        InputService.MouseIconEnabled = not Toggled;
+
+        if hasDrawing then
+            InputService.MouseIconEnabled = not Toggled;
+        else
+            InputService.MouseIconEnabled = true;
+        end;
 
         for _, Desc in next, Outer:GetDescendants() do
             local Properties = {};
