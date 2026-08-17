@@ -439,6 +439,13 @@ end))
 
 InputService.MouseIconEnabled = true;
 
+Library:GiveSignal(RenderStepped:Connect(function()
+    if Library.Toggled then
+        InputService.MouseBehavior = Enum.MouseBehavior.Default;
+        InputService.MouseIconEnabled = true;
+    end
+end));
+
 local BaseAddons = {};
 
 do
@@ -3988,9 +3995,11 @@ function Library:CreateWindow(...)
 
     local ModalElement = Library:Create('TextButton', {
         BackgroundTransparency = 1;
-        Size = UDim2.new(0, 0, 0, 0);
+        Position = UDim2.new(0, 0, 0, 0);
+        Size = UDim2.new(0, 1, 0, 1);
         Visible = true;
         Text = '';
+        Active = true;
         Modal = false;
         Parent = ScreenGui;
     });
@@ -4012,6 +4021,8 @@ function Library:CreateWindow(...)
         if Toggled then
             -- A bit scuffed, but if we're going from not toggled -> toggled we want to show the frame immediately so that the fade is visible.
             Outer.Visible = true;
+            InputService.MouseBehavior = Enum.MouseBehavior.Default;
+            InputService.MouseIconEnabled = true;
         end;
 
         Library.Toggled = Toggled;
