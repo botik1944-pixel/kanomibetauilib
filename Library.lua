@@ -14,10 +14,6 @@ local ProtectGui = protectgui or (syn and syn.protect_gui) or (function() end);
 local ScreenGui = Instance.new('ScreenGui');
 ProtectGui(ScreenGui);
 
-ScreenGui.Name = 'KanomiUI';
-ScreenGui.ResetOnSpawn = false;
-ScreenGui.IgnoreGuiInset = true;
-ScreenGui.DisplayOrder = 1000;
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global;
 ScreenGui.Parent = CoreGui;
 
@@ -438,13 +434,6 @@ Library:GiveSignal(ScreenGui.DescendantRemoving:Connect(function(Instance)
 end))
 
 InputService.MouseIconEnabled = true;
-
-Library:GiveSignal(RenderStepped:Connect(function()
-    if Library.Toggled then
-        InputService.MouseBehavior = Enum.MouseBehavior.Default;
-        InputService.MouseIconEnabled = true;
-    end
-end));
 
 local BaseAddons = {};
 
@@ -3995,11 +3984,9 @@ function Library:CreateWindow(...)
 
     local ModalElement = Library:Create('TextButton', {
         BackgroundTransparency = 1;
-        Position = UDim2.new(0, 0, 0, 0);
-        Size = UDim2.new(0, 1, 0, 1);
+        Size = UDim2.new(0, 0, 0, 0);
         Visible = true;
         Text = '';
-        Active = true;
         Modal = false;
         Parent = ScreenGui;
     });
@@ -4021,8 +4008,6 @@ function Library:CreateWindow(...)
         if Toggled then
             -- A bit scuffed, but if we're going from not toggled -> toggled we want to show the frame immediately so that the fade is visible.
             Outer.Visible = true;
-            InputService.MouseBehavior = Enum.MouseBehavior.Default;
-            InputService.MouseIconEnabled = true;
         end;
 
         Library.Toggled = Toggled;
